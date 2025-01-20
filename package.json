@@ -5,6 +5,7 @@
     "deploy": "wrangler deploy --minify"
   },
   "dependencies": {
+    "@fortaine/fetch-event-source": "^3.0.6",
     "hono": "^4.6.17"
   },
   "devDependencies": {
