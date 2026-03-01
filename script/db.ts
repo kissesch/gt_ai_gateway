@@ -1,6 +1,7 @@
 import { join } from 'path';
 import { readdirSync, readFileSync } from 'fs';
 import { execSync } from 'child_process';
+import { createInterface } from 'readline';
 import Database from 'better-sqlite3';
 
 const args = process.argv.slice(2);
@@ -262,7 +263,6 @@ async function clear(adapter: DBAdapter, env: string) {
     console.warn(`\n⚠️  WARNING: You are about to CLEAR the database in environment: ${env}`);
     console.warn(`All tables EXCEPT sqlite_schema / d1 internal tables will be DROPPED.\n`);
 
-    // 要真正交互确认可以引入 readline，这里简化为直接执行
     let tables: any[] = [];
     try {
         tables = adapter.query<{ name: string }>("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name NOT LIKE 'd1_%'");
@@ -277,6 +277,20 @@ async function clear(adapter: DBAdapter, env: string) {
     }
 
     console.log(`Found ${tables.length} tables to drop:`, tables.map(t => t.name).join(', '));
+
+    // 用户确认
+    const confirmed = await new Promise<boolean>((resolve) => {
+        const rl = createInterface({ input: process.stdin, output: process.stdout });
+        rl.question('Are you sure? (y/N): ', (answer) => {
+            rl.close();
+            resolve(answer.trim().toLowerCase() === 'y');
+        });
+    });
+
+    if (!confirmed) {
+        console.log('Aborted.');
+        return;
+    }
 
     for (const table of tables) {
         try {
