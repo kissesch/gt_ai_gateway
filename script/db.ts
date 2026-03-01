@@ -110,14 +110,17 @@ class WranglerDBAdapter implements DBAdapter {
     }
 
     query<T>(sql: string): T[] {
-        // Wrangler query result format parsing is tricky via CLI
+        // Wrangler --json output format: [{results: [...], success: true, ...}]
         const output = this.runWrangler([`--json --command="${sql.replace(/"/g, '\\"')}"`]);
         try {
-            // Output might have wrangler logs prefixed. 
-            // Best effort: extract JSON bracket bounds.
             const match = output.match(/\[.*\]/s);
             if (match) {
-                return JSON.parse(match[0]) as T[];
+                const parsed = JSON.parse(match[0]);
+                // wrangler d1 returns [{results: [...]}], extract the actual rows
+                if (Array.isArray(parsed) && parsed.length > 0 && Array.isArray(parsed[0]?.results)) {
+                    return parsed[0].results as T[];
+                }
+                return parsed as T[];
             }
             return [];
         } catch (e) {
