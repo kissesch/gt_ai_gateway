@@ -7,9 +7,9 @@ import app from './routes'
 
 // 注册资源文件
 registerFile([
-  { path: 'src/resource/migrate_0001.sql', content: migrate_0001 },
-  { path: 'src/resource/migrate_0002.sql', content: migrate_0002 },
-  { path: 'src/resource/migrate_0003.sql', content: migrate_0003 },
+  { path: 'src/resource/migrate/migrate_0001.sql', content: migrate_0001 },
+  { path: 'src/resource/migrate/migrate_0002.sql', content: migrate_0002 },
+  { path: 'src/resource/migrate/migrate_0003.sql', content: migrate_0003 },
 ])
 
 // 初始化云端配置
