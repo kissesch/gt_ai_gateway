@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { CustomPromise } from '../util/enhanced'
+import { CustomPromise } from '../../src/util/enhanced'
 
 describe('CustomPromise', () => {
   it('应该创建一个可解析的 promise', async () => {
