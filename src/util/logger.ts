@@ -106,5 +106,9 @@ function getLogger(): Logger | null {
     return loggerInstance;
 }
 
+function resetLogger(): void {
+    loggerInstance = null;
+}
+
 export default initLogger;
-export { getLogger, Logger };
+export { getLogger, Logger, resetLogger };
