@@ -20,7 +20,7 @@ let anthropicModelId: number;
 describe("Auth API Tests", () => {
     beforeAll(async () => {
         await dbHelper.truncate();
-        await dbHelper.setupAdminUser();
+        await setupAdminUser();
 
         // Create normal user via API (admin user already created in globalSetup)
         await requestHelper.post(

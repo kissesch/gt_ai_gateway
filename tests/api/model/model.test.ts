@@ -17,8 +17,9 @@ let createdModelId: number;
 describe("Model API (Positive)", () => {
     beforeAll(async () => {
         await dbHelper.truncate();
+        await setupAdminUser();
 
-        // Create vendors for model tests (admin user already created in globalSetup)
+        // Create vendors for model tests (admin user already created)
         const openaiVendor = await requestHelper.post(
             "/vendor/create.json",
             vendorFixtures.VENDOR_FIXTURES.openai(),

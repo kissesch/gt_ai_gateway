@@ -18,8 +18,9 @@ let enabledModelId: number;
 describe("Gateway - Model Enable Filter", () => {
     beforeAll(async () => {
         await dbHelper.truncate();
+        await setupAdminUser();
 
-        // Insert normal user via API (admin user already created in globalSetup)
+        // Insert normal user via API
         const normalUserResponse = await requestHelper.post(
             "/user/create.json",
             {

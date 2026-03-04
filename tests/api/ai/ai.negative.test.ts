@@ -22,7 +22,7 @@ describe("AI Chat API (Negative)", () => {
     beforeAll(async () => {
         await dbHelper.truncate();
 
-        adminToken = await dbHelper.setupAdminUser();
+        adminToken = await setupAdminUser();
 
         // Create test user
         const userResponse = await requestHelper.post(

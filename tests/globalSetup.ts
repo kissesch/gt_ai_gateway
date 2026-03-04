@@ -17,11 +17,16 @@ let mockServerProcess: any | null = null;
  * Creates an admin user via API if needed, returns the admin token
  */
 async function setupAdminUser(): Promise<string> {
+    const rootToken = "test-root-token-123";
     const adminToken = "admin-token-123";
     const adminUser = { name: "Admin User", token: adminToken, type: "admin" };
     console.log("Creating admin user:", adminUser);
     try {
-        const response = await requestHelper.post("/user/create.json", adminUser);
+        const response = await requestHelper.post(
+            "/user/create.json",
+            adminUser,
+            rootToken,
+        );
         console.log("Admin user created, response:", response.status);
     } catch (e: any) {
         console.log("Admin user creation error:", e.response?.status, e.message || e);
@@ -38,7 +43,7 @@ export async function setup(): Promise<void> {
     console.log("[GLOBAL_SETUP] setup() called at", new Date().toISOString());
 
     // Setup database (handles both node and worker modes)
-    await dbHelper.globalSetup();
+    await dbHelper.initDatabase();
 
     if (config.useMockServer) {
         console.log("Starting mock AI server...");
@@ -73,7 +78,7 @@ export async function teardown(): Promise<void> {
     }
 
     // Teardown database (handles both node and worker modes)
-    await dbHelper.globalTeardown(config.TEST_OPTIONS.cleanup);
+    await dbHelper.clearDatabase(config.TEST_OPTIONS.cleanup);
 
     console.log("Test environment teardown complete!");
 }

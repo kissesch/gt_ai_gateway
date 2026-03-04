@@ -177,22 +177,6 @@ function clearD1Tables(): void {
 }
 
 /**
- * Setup admin user in worker mode (for D1 direct operations)
- */
-function setupAdminUser(): void {
-    console.log("[WORKER_SETUP] Setting up admin user...");
-    const now = new Date().toISOString();
-    try {
-        runD1Command([
-            `--command=\"INSERT INTO user (name, token, type, created_at, updated_at) VALUES ('Admin User', 'admin-token-123', 'admin', '${now}', '${now}')\"`,
-        ]);
-        console.log("[WORKER_SETUP] Admin user created");
-    } catch (e) {
-        console.log("[WORKER_SETUP] Admin user might already exist:", (e as any).message || e);
-    }
-}
-
-/**
  * Remove local database file - node mode only
  */
 function removeDatabaseFile(): void {
@@ -220,42 +204,42 @@ function runD1Migrations(): void {
 }
 
 /**
- * Global setup for test database - handles both node and worker modes
+ * Unified database initialization method - handles both node and worker modes
+ * This is the primary entry point for database setup in tests
  */
-async function globalSetup(): Promise<void> {
-    console.log("[GLOBAL_SETUP] Test mode:", config.TEST_MODE);
-
+async function initDatabase(): Promise<void> {
     if (isWorkerMode) {
-        console.log("[GLOBAL_SETUP] Worker mode: D1 database managed by wrangler");
+        console.log("[INIT_DATABASE] Worker mode: D1 database managed by wrangler");
         clearD1LocalDatabase();
         runD1Migrations();
     } else {
         removeDatabaseFile();
-        console.log("[GLOBAL_SETUP] Database file deleted");
+        console.log("[INIT_DATABASE] Database file deleted");
 
         console.log("Initializing test database...");
         await init();
-        console.log("[GLOBAL_SETUP] Database initialized");
+        console.log("[INIT_DATABASE] Database initialized");
     }
 }
 
 /**
- * Global teardown for test database - handles both node and worker modes
+ * Unified database cleanup method - handles both node and worker modes
+ * This is the primary entry point for database cleanup in tests
  */
-async function globalTeardown(cleanup: boolean = true): Promise<void> {
-    if (!cleanup) {
+async function clearDatabase(shouldCleanup: boolean = true): Promise<void> {
+    if (!shouldCleanup) {
         return;
     }
 
     if (isWorkerMode) {
-        console.log("[GLOBAL_TEARDOWN] Worker mode: Cleaning up D1 local database...");
+        console.log("[CLEAR_DATABASE] Worker mode: Cleaning up D1 local database...");
         clearD1LocalDatabase();
-        console.log("[GLOBAL_TEARDOWN] D1 local database cleaned up");
+        console.log("[CLEAR_DATABASE] D1 local database cleaned up");
     } else {
         console.log("Cleaning up test database...");
         await cleanup();
         removeDatabaseFile();
-        console.log("[GLOBAL_TEARDOWN] Database cleaned up and file deleted");
+        console.log("[CLEAR_DATABASE] Database cleaned up and file deleted");
     }
 }
 
@@ -313,9 +297,8 @@ async function cleanup(): Promise<void> {
  */
 async function truncate(): Promise<void> {
     if (isWorkerMode) {
-        // In worker mode, clear D1 tables and recreate admin user
+        // In worker mode, clear D1 tables only (admin user created via API)
         clearD1Tables();
-        setupAdminUser();
         return;
     }
 
@@ -336,17 +319,6 @@ async function truncate(): Promise<void> {
         } catch (e) {
             console.error(`Failed to truncate table ${table.name}:`, e);
         }
-    }
-
-    // Recreate admin user after truncation
-    const now = new Date().toISOString();
-    try {
-        adapter.exec(
-            `INSERT INTO user (name, token, type, created_at, updated_at) VALUES ('Admin User', 'admin-token-123', 'admin', '${now}', '${now}')`,
-        );
-        console.log("Admin user recreated");
-    } catch (e) {
-        console.log("Admin user might already exist:", (e as any).message);
     }
 
     console.log("Tables truncated");
@@ -433,16 +405,15 @@ function close(): void {
 }
 
 export default {
-    globalSetup,
-    globalTeardown,
-    init,
-    cleanup,
-    truncate,
+    initDatabase,   // Unified database initialization
+    clearDatabase,  // Unified database cleanup
+    init,           // Connection initialization
+    cleanup,        // DROP TABLE cleanup
+    truncate,       // DELETE cleanup
     query,
     execute,
     getDB,
     getAdapter,
     close,
-    clearD1Tables,
-    setupAdminUser,
+    clearD1Tables,  // Internal D1 table clearing (for truncate)
 };

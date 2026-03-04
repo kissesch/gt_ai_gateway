@@ -16,7 +16,7 @@ let adminToken: string;
 describe("User API (Positive)", () => {
     beforeAll(async () => {
         await dbHelper.truncate();
-        adminToken = await dbHelper.setupAdminUser();
+        adminToken = await setupAdminUser();
     });
     describe("POST /user/create.json", () => {
         it("should create a user with specified token", async () => {

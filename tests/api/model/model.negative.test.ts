@@ -18,7 +18,7 @@ let adminToken: string;
 describe("Model API (Negative)", () => {
     beforeAll(async () => {
         await dbHelper.truncate();
-        adminToken = await dbHelper.setupAdminUser();
+        adminToken = await setupAdminUser();
 
         // Create a vendor for model tests
         const vendor = await requestHelper.post(

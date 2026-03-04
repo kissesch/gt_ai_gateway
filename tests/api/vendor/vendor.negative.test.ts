@@ -14,7 +14,7 @@ let adminToken: string;
 describe("Vendor API (Negative)", () => {
     beforeAll(async () => {
         await dbHelper.truncate();
-        adminToken = await dbHelper.setupAdminUser();
+        adminToken = await setupAdminUser();
     });
 
     beforeEach(async () => {

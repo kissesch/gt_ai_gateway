@@ -14,7 +14,7 @@ let adminToken: string;
 describe("Vendor API (Positive)", () => {
     beforeAll(async () => {
         await dbHelper.truncate();
-        adminToken = await dbHelper.setupAdminUser();
+        adminToken = await setupAdminUser();
     });
     describe("POST /vendor/create.json", () => {
         it("should create an OpenAI vendor", async () => {

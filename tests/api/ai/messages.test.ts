@@ -22,7 +22,7 @@ describe("AI Messages API (Anthropic)", () => {
     beforeAll(async () => {
         await dbHelper.truncate();
 
-        adminToken = await dbHelper.setupAdminUser();
+        adminToken = await setupAdminUser();
 
         // Create test user
         const userResponse = await requestHelper.post(
