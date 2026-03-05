@@ -24,3 +24,10 @@ DROP TABLE vendor;
 
 -- Step 4: Rename new table to vendor
 ALTER TABLE vendor_new RENAME TO vendor;
+
+-- Add statistics fields to record table
+ALTER TABLE record ADD COLUMN prompt_tokens INTEGER null;
+ALTER TABLE record ADD COLUMN output_tokens INTEGER null;
+ALTER TABLE record ADD COLUMN first_token_latency INTEGER null;
+ALTER TABLE record ADD COLUMN start_at TIMESTAMP null;
+ALTER TABLE record ADD COLUMN end_at TIMESTAMP null;

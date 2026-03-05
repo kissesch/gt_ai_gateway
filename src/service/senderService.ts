@@ -37,6 +37,7 @@ async function sendRequest(
     const record = await recordService.create(user.id, modelConfig.id, body);
     await recordService.update(record.id, {
         status: SgRecordStatus.PROCESSING,
+        start_at: new Date(),
     });
     const recordId = record.id;
 
@@ -49,6 +50,7 @@ async function sendRequest(
     const accumulator = new sseAccumulator.SSEAccumulator(
         format === ApiFormat.ANTHROPIC ? 'anthropic' : 'openai'
     ); // SSE 消息累加器
+    let firstTokenTime: number | null = null; // 首个 token 时间
 
     // 自定义 Promise，用于等待响应头到达（判断是否为流式）
     let getResponseHeaderPromise: enhanced.CustomPromise<void> = new enhanced.CustomPromise();
@@ -143,6 +145,11 @@ async function sendRequest(
         async onmessage(msg) {
             console.log("onMessage:", msg);
 
+            // 记录首个 token 的时间
+            if (firstTokenTime === null && msg.data !== "[DONE]") {
+                firstTokenTime = Date.now();
+            }
+
             // 检查是否是 [DONE] 标和其他特殊消息
             if (msg.data === "[DONE]") {
                 // 直接转发，不尝试解析
@@ -206,9 +213,22 @@ async function sendRequest(
 
                 // 流式响应完成后，保存完整响应到数据库
                 const fullResponse = accumulator.getResponse();
+                const endTime = new Date();
+
+                // 提取统计数据
+                const stats = {
+                    prompt_tokens: fullResponse.usage?.prompt_tokens ?? null,
+                    output_tokens: fullResponse.usage?.completion_tokens ?? null,
+                    first_token_latency: firstTokenTime !== null
+                        ? firstTokenTime - record.created_at.getTime()
+                        : null,
+                    end_at: endTime,
+                };
+
                 await recordService.update(recordId, {
                     response_data: JSON.stringify(fullResponse),
                     status: SgRecordStatus.SUCCESS,
+                    ...stats,
                 });
             },
         );
@@ -216,6 +236,28 @@ async function sendRequest(
 
         // 非流式响应
     } else {
+        const endTime = new Date();
+
+        // 解析响应数据以提取 token 信息
+        let promptTokens: number | null = null;
+        let outputTokens: number | null = null;
+        if (upstreamResponseText) {
+            try {
+                const responseJson = JSON.parse(upstreamResponseText);
+                if (format === ApiFormat.ANTHROPIC) {
+                    // Anthropic 格式: usage.input_tokens, usage.output_tokens
+                    promptTokens = responseJson.usage?.input_tokens ?? null;
+                    outputTokens = responseJson.usage?.output_tokens ?? null;
+                } else {
+                    // OpenAI 格式: usage.prompt_tokens, usage.completion_tokens
+                    promptTokens = responseJson.usage?.prompt_tokens ?? null;
+                    outputTokens = responseJson.usage?.completion_tokens ?? null;
+                }
+            } catch (e) {
+                console.log("Failed to parse response for token stats:", e);
+            }
+        }
+
         // 更新数据库记录
         await recordService.update(recordId, {
             response_data: upstreamResponseText,
@@ -223,6 +265,9 @@ async function sendRequest(
                 upstreamStatusCode == 200
                     ? SgRecordStatus.SUCCESS
                     : SgRecordStatus.FAILED,
+            prompt_tokens: promptTokens,
+            output_tokens: outputTokens,
+            end_at: endTime,
         });
 
         // 返回 JSON 响应

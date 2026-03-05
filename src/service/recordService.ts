@@ -12,6 +12,11 @@ async function create(
         request_data: requestData,
         response_data: null,
         status: SgRecordStatus.INIT,
+        prompt_tokens: null,
+        output_tokens: null,
+        first_token_latency: null,
+        start_at: null,
+        end_at: null,
     });
 }
 

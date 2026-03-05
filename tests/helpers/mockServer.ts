@@ -225,7 +225,7 @@ function handleOpenAIStreamResponse(res: ServerResponse, data: any): void {
     let i = 0;
     const interval = setInterval(() => {
         if (i >= chunks.length) {
-            // Send final chunk
+            // Send final chunk with usage information
             const finalChunk = {
                 id: `chatcmpl-${Date.now()}`,
                 object: "chat.completion.chunk",
@@ -238,6 +238,11 @@ function handleOpenAIStreamResponse(res: ServerResponse, data: any): void {
                         finish_reason: "stop",
                     },
                 ],
+                usage: {
+                    prompt_tokens: 8,
+                    completion_tokens: 12,
+                    total_tokens: 20,
+                },
             };
             res.write(`data: ${JSON.stringify(finalChunk)}\n\n`);
             res.write("data: [DONE]\n\n");
@@ -355,7 +360,7 @@ function handleAnthropicStreamResponse(res: ServerResponse, data: any): void {
             content: [],
             model: data.model || "claude-3-haiku-20240307",
             stop_reason: null,
-            usage: { input_tokens: 10, output_tokens: 0 },
+            usage: { input_tokens: 8, output_tokens: 0 },
         },
     };
     res.write(`event: message_start\ndata: ${JSON.stringify(startEvent)}\n\n`);
@@ -363,9 +368,10 @@ function handleAnthropicStreamResponse(res: ServerResponse, data: any): void {
     let i = 0;
     const interval = setInterval(() => {
         if (i >= chunks.length) {
-            // Send message_stop event
+            // Send message_stop event with final usage
             const stopEvent = {
                 type: "message_stop",
+                usage: { input_tokens: 8, output_tokens: 12 },
             };
             res.write(
                 `event: message_stop\ndata: ${JSON.stringify(stopEvent)}\n\n`,

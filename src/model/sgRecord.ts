@@ -14,6 +14,12 @@ class SgRecord extends Model {
     response_data!: string | null;
     status!: SgRecordStatus | null;
 
+    prompt_tokens!: number | null;
+    output_tokens!: number | null;
+    first_token_latency!: number | null;
+    start_at!: Date | null;
+    end_at!: Date | null;
+
     created_at!: Date;
     updated_at!: Date;
 
