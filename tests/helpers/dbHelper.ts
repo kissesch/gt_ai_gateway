@@ -26,6 +26,15 @@ class LocalDBAdapter implements DBAdapter {
         this.db.exec(sql);
     }
 
+    execTransaction(sqls: string[]): void {
+        const run = this.db.transaction(() => {
+            for (const sql of sqls) {
+                this.db.exec(sql);
+            }
+        });
+        run();
+    }
+
     query<T>(sql: string): T[] {
         return this.db.prepare(sql).all() as T[];
     }

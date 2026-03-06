@@ -1,5 +1,5 @@
 import { join } from "path";
-import { readdirSync, readFileSync } from "fs";
+import { readdirSync, readFileSync, writeFileSync, mkdirSync, rmSync } from "fs";
 import { execSync } from "child_process";
 import { createInterface } from "readline";
 import Database from "better-sqlite3";
@@ -7,6 +7,7 @@ import Database from "better-sqlite3";
 const args = process.argv.slice(2);
 export const MIGRATION_DIR = join(process.cwd(), "resource", "migrate");
 const LOCAL_DB_PATH = join(process.cwd(), "local.db");
+const TMP_DIR = join(process.cwd(), ".tmp");
 
 export interface Migration {
     id?: number;
@@ -41,6 +42,7 @@ export interface DBAdapter {
     query<T>(sql: string): T[];
     run(sql: string, ...params: any[]): void;
     close(): void;
+    execTransaction?(sqls: string[]): void;
 }
 
 class LocalDBAdapter implements DBAdapter {
@@ -68,6 +70,16 @@ class LocalDBAdapter implements DBAdapter {
                 }
             }
         }
+    }
+
+
+    execTransaction(sqls: string[]): void {
+        const run = this.db.transaction(() => {
+            for (const sql of sqls) {
+                this.db.exec(sql);
+            }
+        });
+        run();
     }
 
     query<T>(sql: string): T[] {
@@ -221,28 +233,24 @@ export async function migrate(adapter: DBAdapter, env: string) {
         const sqlPath = join(MIGRATION_DIR, file);
         const sql = readFileSync(sqlPath, "utf-8");
 
+        const insertRecord = `INSERT INTO _migrations (name) VALUES ('${file}')`;
+
         try {
-            if (adapter instanceof WranglerDBAdapter) {
-                // 对于 wrangler，由于 SQL 可能非常长，最好使用 --file 参数
-                // 我们利用子进程直接执行该文件
+            if (!adapter.execTransaction) {
+                // 把 migration SQL 和记录插入合并到一个临时文件，一次提交
+                mkdirSync(TMP_DIR, { recursive: true });
+                const tmpFile = join(TMP_DIR, `migration_${crypto.randomUUID()}.sql`);
+                writeFileSync(tmpFile, `${sql}\n${insertRecord};`, "utf-8");
                 let cmd = `npx wrangler d1 execute ${dbName} ${env === "worker-cloud" ? "--remote" : "--local"}`;
                 if (dbConfigPath) {
                     cmd += ` --config ${dbConfigPath}`;
                 }
-                cmd += ` --file="${sqlPath}"`;
+                cmd += ` --file="${tmpFile}"`;
                 console.log(`> ${cmd}`);
                 execSync(cmd, { stdio: "inherit" });
             } else {
-                adapter.exec(sql);
-            }
-
-            // 记录迁移
-            if (adapter instanceof WranglerDBAdapter) {
-                adapter.exec(
-                    `INSERT INTO _migrations (name) VALUES ('${file}')`,
-                );
-            } else {
-                adapter.run("INSERT INTO _migrations (name) VALUES (?)", file);
+                // 用事务把 migration SQL 和记录插入打包执行
+                adapter.execTransaction!([sql, insertRecord]);
             }
             console.log(`✅ Successfully applied: ${file}`);
         } catch (e) {
@@ -417,6 +425,7 @@ async function main() {
         process.exit(1);
     } finally {
         adapter.close();
+        try { rmSync(TMP_DIR, { recursive: true, force: true }); } catch {}
     }
 }
 

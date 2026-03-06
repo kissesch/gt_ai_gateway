@@ -6,6 +6,11 @@ import { SgRecordStatus } from "../constants";
 class SgRecord extends Model {
     table = "record";
 
+    casts = {
+        start_at: "datetime",
+        end_at: "datetime",
+    };
+
     id!: number;
 
     user_id!: number | null;
@@ -17,11 +22,11 @@ class SgRecord extends Model {
     prompt_tokens!: number | null;
     output_tokens!: number | null;
     first_token_latency!: number | null;
-    start_at!: Date | string | null;
-    end_at!: Date | string | null;
+    start_at!: Date | null;
+    end_at!: Date | null;
 
-    created_at!: Date | string;
-    updated_at!: Date | string;
+    created_at!: Date;
+    updated_at!: Date;
 
     [inspect.custom](depth: number, options: InspectOptions) {
         return JSON.stringify(this.toData(), null, 2);
