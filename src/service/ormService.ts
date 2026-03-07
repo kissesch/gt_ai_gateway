@@ -38,6 +38,7 @@ class ORMService {
     }
 
     private _cloudConnected = false;
+    private _connectPromise: Promise<void> | null = null;
 
     async connectCloud(db: any) {
         if (this._dbAdapter instanceof D1Adapter) {
@@ -45,51 +46,93 @@ class ORMService {
         }
 
         if (!this._cloudConnected) {
-            const ClientD1 = (await import("knex-cloudflare-d1")).default;
-
-            // === Date 类型写入补丁（仅 worker/cloud 模式需要）===
-            //
-            // 【背景】SQLite 和 D1 本身都没有原生 Date 类型，日期以文本形式存储。
-            // 但两种运行模式的 knex driver 对 Date 对象的处理方式不同：
-            //
-            // - node 模式（better-sqlite3 driver）：
-            //   knex 内置了 _formatBindings()，会在绑定参数前将 Date 对象转为
-            //   数值（valueOf() = 毫秒时间戳），better-sqlite3 底层再将其存为整数。
-            //   读出时 sutando 的 getDates()/casts 通过 asDateTime() → new Date(value)
-            //   自动还原为 Date 对象，业务代码感知不到差异。
-            //
-            // - worker 模式（knex-cloudflare-d1 driver）：
-            //   该 driver 继承自 Client_Sqlite3，但没有实现 _formatBindings()，
-            //   bindings 直接透传给 D1 的 prepare().bind() API。
-            //   而 D1 的 bind() 只接受 string | number | null，传入 Date 对象会报错。
-            //
-            // 【读出方向无需补丁】
-            //   D1 读出的始终是原始字符串，sutando 在 getAttribute 时统一处理：
-            //   - created_at / updated_at：由 getDates() 自动识别，走 asDateTime()
-            //   - start_at / end_at：在 SgRecord.casts 中声明为 "datetime"，同样走 asDateTime()
-            //   asDateTime() 内部直接 new Date(value)，字符串和数值都能正确解析。
-            //
-            // 【补丁方案】在 _query 执行前拦截 bindings，将 Date 对象转为 ISO 字符串，
-            // 与 sutando 写入 created_at/updated_at 时的格式保持一致。
-            const originalQuery = ClientD1.prototype._query;
-            ClientD1.prototype._query = async function(connection: any, obj: any) {
-                if (obj.bindings) {
-                    obj.bindings = obj.bindings.map((b: any) =>
-                        b instanceof Date ? b.toISOString() : b
-                    );
-                }
-                return originalQuery.call(this, connection, obj);
-            };
-
-            sutando.addConnection({
-                client: ClientD1,
-                connection: {
-                    database: db,
-                },
-                useNullAsDefault: true,
-            });
-            this._cloudConnected = true;
+            // 使用 Promise 锁防止并发请求重复初始化连接
+            // 第一个请求创建 Promise，后续并发请求 await 同一个 Promise
+            if (!this._connectPromise) {
+                this._connectPromise = this._doConnectCloud(db);
+            }
+            await this._connectPromise;
         }
+
+        // === 每次请求都更新 D1 binding ===
+        //
+        // Cloudflare Workers 中每个请求都有独立的 I/O 上下文，
+        // env.DB（D1 binding）是 per-request 的。
+        // 但 sutando/knex 在首次初始化时缓存了 Client_D1 实例，
+        // 其中 d1Driver 指向第一个请求的 env.DB。
+        // 后续并发请求如果复用这个 client，会触发：
+        // "Cannot perform I/O on behalf of a different request"
+        //
+        // 解决方案：每次请求都将当前的 env.DB 更新到 Client_D1 实例上，
+        // 确保 acquireRawConnection() 和 _query() 使用的是当前请求的 D1 binding。
+        this._updateD1Binding(db);
+    }
+
+    private _updateD1Binding(db: any): void {
+        try {
+            const instance = (sutando as any).getInstance();
+            const queryBuilder = instance.manager?.['default'];
+            if (queryBuilder) {
+                // QueryBuilder 是 Proxy，通过 connector 访问 Knex 实例
+                const knexInstance = queryBuilder.connector;
+                if (knexInstance?.client) {
+                    knexInstance.client.d1Driver = db;
+                    knexInstance.client.driver = db;
+                }
+            }
+        } catch (e) {
+            // 静默处理，避免更新失败影响请求
+        }
+    }
+
+    private async _doConnectCloud(db: any): Promise<void> {
+        const ClientD1 = (await import("knex-cloudflare-d1")).default;
+
+        // === Cloudflare Workers 跨请求 I/O 修复 ===
+        //
+        // 【问题】Cloudflare Workers 中每个请求的 env.DB（D1 binding）有独立 I/O 上下文。
+        // knex 内部使用 tarn.js 连接池缓存连接对象（acquireRawConnection 返回值），
+        // 当并发请求从池中获取到其他请求创建的连接时会触发：
+        // "Cannot perform I/O on behalf of a different request"
+        //
+        // 【解决方案】
+        // 1. 覆盖 acquireConnection：绕过连接池，始终返回 this.d1Driver（当前请求的 env.DB）
+        // 2. 覆盖 releaseConnection：无需归还到池中
+        // 3. 在 _query 中使用 this.d1Driver 替代 connection 参数
+        //
+        // this.d1Driver 通过 _updateD1Binding() 在每次请求的 dbMiddleware 中更新。
+
+        // 绕过连接池，始终使用当前请求的 D1 binding
+        ClientD1.prototype.acquireConnection = async function () {
+            return this.d1Driver;
+        };
+
+        ClientD1.prototype.releaseConnection = async function () {
+            return;
+        };
+
+        // Date 补丁 + 使用当前请求的 D1 binding
+        // worker 模式的 knex-cloudflare-d1 不实现 _formatBindings()，
+        // Date 对象直接传给 D1 bind() 会报错（只接受 string|number|null）
+        const originalQuery = ClientD1.prototype._query;
+        ClientD1.prototype._query = async function (connection: any, obj: any) {
+            if (obj.bindings) {
+                obj.bindings = obj.bindings.map((b: any) =>
+                    b instanceof Date ? b.toISOString() : b
+                );
+            }
+            // 始终使用 this.d1Driver 而非 connection 参数（可能来自过期的连接池）
+            return originalQuery.call(this, this.d1Driver, obj);
+        };
+
+        sutando.addConnection({
+            client: ClientD1,
+            connection: {
+                database: db,
+            },
+            useNullAsDefault: true,
+        });
+        this._cloudConnected = true;
     }
 
     async prepareDBConnection(db: any) {
