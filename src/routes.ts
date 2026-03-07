@@ -13,6 +13,7 @@ import errorHandler from "./util/errorHandler";
 interface Env {
     DB: D1Database;
     ROOT_TOKEN: string;
+    ASSETS: Fetcher;
 }
 
 const dbMiddleware: MiddlewareHandler<{ Bindings: Env }> = async (c, next) => {
@@ -81,6 +82,43 @@ app.get("/record/:id", authMiddleware.requireAdmin, recordController.getRecord);
 // AI endpoints (no auth middleware)
 app.post("/v1/chat/completions", gatewayController.chatCompletions);
 app.post("/v1/messages", gatewayController.anthropicMessages);
+
+// SPA fallback - serve index.html for all non-API routes
+// This handles frontend routes like /dashboard, /vendor, etc.
+app.get("*", async (c) => {
+    const url = new URL(c.req.url);
+    const pathname = url.pathname;
+
+    // Skip API routes and static assets with extensions
+    if (pathname.startsWith("/v1/") ||
+        pathname.includes(".json") ||
+        pathname.includes(".js") ||
+        pathname.includes(".css") ||
+        pathname.includes(".svg") ||
+        pathname.includes(".png") ||
+        pathname.includes(".jpg") ||
+        pathname.includes(".ico") ||
+        pathname.includes(".woff") ||
+        pathname.includes(".woff2") ||
+        pathname.includes(".ttf")) {
+        return c.notFound();
+    }
+
+    // Try to serve from Assets binding first
+    if (c.env.ASSETS) {
+        try {
+            const response = await c.env.ASSETS.fetch(new Request("https://example.com/index.html"));
+            if (response.ok) {
+                const html = await response.text();
+                return c.html(html, 200);
+            }
+        } catch (e) {
+            // Fall through to return index.html
+        }
+    }
+
+    return c.notFound();
+});
 
 export { app, Env };
 export default app;
