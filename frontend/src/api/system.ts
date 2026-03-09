@@ -1,7 +1,7 @@
 import request from '@/utils/request';
 
 export function welcome(): Promise<any> {
-    return request.get('/');
+    return request.get('/status.json');
 }
 
 export function status(): Promise<any> {
