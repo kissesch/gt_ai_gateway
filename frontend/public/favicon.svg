@@ -1,0 +1,25 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="navyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a" /> <!-- 典型的 Navy 蓝 (Blue 900) -->
+      <stop offset="100%" stop-color="#172554" /> <!-- 更深的 Navy (Blue 950) -->
+    </linearGradient>
+  </defs>
+  <!-- 背景：经典的圆角设计 -->
+  <rect width="512" height="512" rx="110" fill="url(#navyGrad)" />
+  
+  <!-- 图形部分：使用纯白色以获得极佳的对比度 -->
+  <path d="M256 110 L390 188 L390 324 L256 402 L122 324 L122 188 Z" fill="none" stroke="white" stroke-width="28" stroke-linejoin="round" />
+  
+  <circle cx="256" cy="256" r="50" fill="white" />
+  
+  <path d="M256 256 L256 110 M256 256 L390 188 M256 256 L390 324 M256 256 L256 402 M256 256 L122 324 M256 256 L122 188" stroke="white" stroke-width="15" stroke-linecap="round" />
+  
+  <!-- 节点端点 -->
+  <circle cx="256" cy="110" r="14" fill="white" />
+  <circle cx="390" cy="188" r="14" fill="white" />
+  <circle cx="390" cy="324" r="14" fill="white" />
+  <circle cx="256" cy="402" r="14" fill="white" />
+  <circle cx="122" cy="324" r="14" fill="white" />
+  <circle cx="122" cy="188" r="14" fill="white" />
+</svg>

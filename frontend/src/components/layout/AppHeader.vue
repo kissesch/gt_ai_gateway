@@ -1,6 +1,7 @@
 <template>
     <div class="app-header">
         <div class="header-left">
+            <img src="/favicon.svg" alt="Logo" class="logo" />
             <span class="title">{{ title }}</span>
         </div>
         <div class="header-right">
@@ -59,16 +60,18 @@ function handleLogout() {
 .header-left {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
 }
 
-.collapse-btn {
-    font-size: 18px;
+.logo {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
 }
 
 .title {
     font-size: 18px;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .header-right {
