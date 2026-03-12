@@ -2,6 +2,13 @@
 
 一个轻量级的 AI 服务网关，支持 OpenAI 和 Anthropic API 格式的请求转发、模型路由和请求记录。
 
+## 文档索引
+
+- **[前端开发手册](doc/FrontendDevManual.md)**: 包含前端环境配置、开发命令、项目结构等。
+- **[后端开发手册](doc/BackendDevManual.md)**: 包含后端架构说明、API 开发步骤、数据库迁移等。
+- **[测试手册](doc/TestManual.md)**: 详细描述测试环境的架构设计和操作流程。
+- **[编程规范](GEMINI.md)**: 项目代码规范和开发技巧。
+
 ## 主要功能
 
 - **API 网关**: 统一转发请求到上游 AI 服务（OpenAI、Anthropic、自定义）

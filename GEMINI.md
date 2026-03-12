@@ -7,7 +7,8 @@
 | 文档 | 说明 |
 |------|------|
 | **GEMINI.md** | 本文档，编程规范和工作技巧 |
-| **doc/DevManual.md** | 开发手册，包含环境配置、前后端开发方式、开发工作流等 |
+| **doc/FrontendDevManual.md** | 前端开发手册，包含环境配置、前端开发方式等 |
+| **doc/BackendDevManual.md** | 后端开发手册，包含环境配置、后端开发方式、API 开发等 |
 | **doc/TestManual.md** | 测试手册，描述测试环境的架构设计和操作流程 |
 
 ## 编程规范
