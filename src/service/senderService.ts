@@ -139,7 +139,13 @@ async function sendRequest(
     vendor: SgVendor,
     format: ApiFormat,
 ): Promise<Response> {
-    const url = vendor.getUrlByFormat(format);
+    let url = vendor.getUrlByFormat(format);
+
+    // Anthropic 特殊处理：如果 URL 不以 /v1/messages 结尾，自动补全
+    if (format === ApiFormat.ANTHROPIC && !url.endsWith("/v1/messages")) {
+        // 去掉末尾可能存在的斜杠后再拼接
+        url = url.replace(/\/$/, "") + "/v1/messages";
+    }
 
     // 1. 读取请求体，创建数据库记录
     const body: string = await c.req.text();

@@ -1,6 +1,6 @@
 import type { BaseEntity, TableQuery } from './index';
 
-export type VendorType = 'openai' | 'anthropic' | 'google' | 'aliyun' | 'aliyun_coding' | 'deepseek' | 'other';
+export type VendorType = 'openai' | 'anthropic' | 'google' | 'aliyun' | 'aliyun_coding' | 'volcengine_coding' | 'deepseek' | 'other';
 
 export interface VendorUrls {
     [key: string]: string;

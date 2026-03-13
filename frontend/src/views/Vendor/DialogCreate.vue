@@ -17,6 +17,7 @@
                 <a-select v-model:value="formState.type" placeholder="请选择供应商类型">
                     <a-select-option value="aliyun">Aliyun (通义千问)</a-select-option>
                     <a-select-option value="aliyun_coding">Aliyun Coding</a-select-option>
+                    <a-select-option value="volcengine_coding">Volcengine Coding</a-select-option>
                     <a-select-option value="deepseek">DeepSeek</a-select-option>
                     <a-select-option value="openai">OpenAI</a-select-option>
                     <a-select-option value="anthropic">Anthropic</a-select-option>

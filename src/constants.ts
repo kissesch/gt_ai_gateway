@@ -8,6 +8,7 @@ export enum SgRecordStatus {
 export enum VendorType {
     ALIYUN = "aliyun",
     ALIYUN_CODING = "aliyun_coding",
+    VOLCENGINE_CODING = "volcengine_coding",
     DEEPSEEK = "deepseek",
     OTHER = "other",
 }

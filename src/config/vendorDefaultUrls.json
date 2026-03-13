@@ -7,6 +7,10 @@
         "openai": "https://coding.dashscope.aliyuncs.com/v1",
         "anthropic": "https://coding.dashscope.aliyuncs.com/apps/anthropic"
     },
+    "volcengine_coding": {
+        "openai": "https://ark.cn-beijing.volces.com/api/coding/v3",
+        "anthropic": "https://ark.cn-beijing.volces.com/api/coding"
+    },
     "deepseek": {
         "openai": "https://api.deepseek.com/v1/chat/completions"
     }
