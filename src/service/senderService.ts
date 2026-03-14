@@ -70,7 +70,8 @@ async function handleStreamResponse(
 
                 // 累积消息用于保存完整响应
                 try {
-                    accumulator.addMessage(JSON.parse(data));
+                    const parsedData = JSON.parse(data);
+                    accumulator.addMessage(parsedData, eventType);
                 } catch (e) {
                     console.log("Failed to parse SSE data:", data, e);
                 }

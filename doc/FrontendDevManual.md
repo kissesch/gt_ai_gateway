@@ -235,6 +235,8 @@ src/types/
 
 ### 开发规范
 
+详见 `GEMINI.md`，核心规范如下：
+
 1. **组件命名**：使用 PascalCase（如 `UserList.vue`）
 2. **文件命名**：与组件名保持一致
 3. **API 调用**：统一使用 `src/api/` 中定义的方法
@@ -266,4 +268,4 @@ A:
 
 - **后端开发手册**：`doc/BackendDevManual.md`
 - **测试手册**：`doc/TestManual.md`
-- **编程规范**：`CLAUDE.md`
+- **编程规范**：`GEMINI.md`

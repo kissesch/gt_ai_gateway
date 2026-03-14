@@ -95,7 +95,7 @@ Wrangler 会启动本地开发服务器，模拟 Cloudflare Workers 环境
 | `npm run backend:deploy` | 部署到 Cloudflare Workers |
 | `npm run backend:test` | 运行后端测试 |
 
-## 数据库配置
+## 数据库配置与管理
 
 ### 数据库类型
 
@@ -103,6 +103,43 @@ Wrangler 会启动本地开发服务器，模拟 Cloudflare Workers 环境
 |------|--------|------|
 | **本地模式 (Node.js)** | SQLite (`better-sqlite3`) | 本地文件存储 |
 | **云端模式 (Cloudflare)** | Cloudflare D1 | 分布式 SQL 数据库 |
+
+### 数据库管理工具
+
+项目提供 `script/db.ts` 脚本用于数据库运维，支持以下命令和环境：
+
+#### 命令
+
+| 命令 | 说明 |
+|------|------|
+| `migrate` | 执行待应用的数据库迁移 |
+| `status` | 查看所有迁移文件的应用状态 |
+| `clear` | 清空数据库（删除所有自定义表） |
+
+#### 环境（`--env`）
+
+| 环境 | 说明 |
+|------|------|
+| `local`（默认） | 本地 Node.js 环境，操作 `local.db` |
+| `worker-local` | Wrangler 本地 D1 模拟器 |
+| `worker-cloud` | Cloudflare D1 云端数据库 |
+
+#### 使用示例
+
+```bash
+# 执行迁移（local 环境）
+npm run db:migrate:local
+
+# 查看迁移状态
+npm run db:status:local
+
+# 清空数据库
+npm run db:clear:local
+
+# 指定 worker 环境
+npx tsx script/db.ts migrate --env worker-local
+npx tsx script/db.ts migrate --env worker-cloud
+```
 
 ### 本地模式数据库路径
 
@@ -120,11 +157,74 @@ Wrangler 会启动本地开发服务器，模拟 Cloudflare Workers 环境
 DB_PATH=/path/to/your/custom.db
 ```
 
-#### Docker 环境
+---
 
-在 Docker 镜像中，默认配置为：
-- 容器内路径：`/app/data/local.db`
-- 挂载点建议：将宿主机目录挂载到容器的 `/app/data` 目录以实现数据持久化。
+## 部署说明
+
+### Cloudflare Workers 部署
+
+#### 开发模式
+```bash
+# 启动 Cloudflare Workers 本地开发环境
+npm run backend:dev
+```
+
+#### 部署到生产环境
+```bash
+# 部署到 Cloudflare Workers
+npm run backend:deploy
+```
+
+### Docker 部署
+
+#### 使用 Docker Compose
+
+创建 `.env` 文件配置环境变量：
+
+```bash
+ROOT_TOKEN=your-secret-root-token
+PORT=8787
+DB_PATH=/app/data/local.db
+```
+
+启动服务：
+```bash
+docker-compose up -d
+```
+
+#### 使用 Docker 直接构建和运行
+
+```bash
+# 构建镜像
+docker build -t serverless_ai_gateway .
+
+# 运行容器
+docker run -d \
+    --name serverless_ai_gateway \
+    -p 8787:8787 \
+    -v $(pwd)/data:/app/data \
+    -e ROOT_TOKEN=your-secret-root-token \
+    serverless_ai_gateway
+```
+
+#### 使用 Docker Hub
+
+```bash
+# 拉取最新镜像
+docker pull alexazhou/serverless_ai_gateway:latest
+
+# 运行容器
+docker run -d \
+    --name serverless_ai_gateway \
+    -p 8787:8787 \
+    -v $(pwd)/data:/app/data \
+    -e ROOT_TOKEN=your-secret-root-token \
+    alexazhou/serverless_ai_gateway:latest
+```
+
+---
+
+## 核心架构与规范
 
 ### MVC 架构
 
@@ -144,7 +244,7 @@ Node 模式下，后端服务器可以提供前端构建后的静态文件：
 
 ### 开发规范
 
-详见 `CLAUDE.md`，核心规范如下：
+详见 `GEMINI.md`，核心规范如下：
 
 1. **代码缩进**：使用 4 个空格，方法之间空两行
 2. **模块划分**：
@@ -163,56 +263,9 @@ Node 模式下，后端服务器可以提供前端构建后的静态文件：
 
 ---
 
-## 数据库与测试
-
-### 数据库迁移
-
-```bash
-# 执行迁移
-npm run db:migrate:local
-
-# 查看迁移状态
-npm run db:status:local
-
-# 清空数据库
-npm run db:clear:local
-```
-
-### 运行测试
-
-```bash
-# 运行所有测试
-npm run backend:test
-
-# 运行特定测试
-npm run backend:test -- --run tests/api/user/user.test.ts
-```
-
-详见 `doc/TestManual.md`
-
----
-
-## 常见问题
-
-**Q: 启动时 ROOT_TOKEN 为空？**
-
-A: 检查 `.dev.vars` 文件是否存在且配置正确
-
-**Q: 数据库连接失败？**
-
-A: 运行 `npm run db:migrate:local` 初始化数据库
-
-**Q: 如何添加后端 API？**
-
-A:
-1. 在 `src/routes.ts` 添加路由
-2. 在 `src/controller/` 添加控制器
-3. 在 `src/service/` 添加服务层逻辑
-
----
-
 ## 相关文档
 
+- **LLM API 使用指南**：`doc/LlmApiUsage.md`
 - **前端开发手册**：`doc/FrontendDevManual.md`
 - **测试手册**：`doc/TestManual.md`
-- **编程规范**：`CLAUDE.md`
+- **编程规范**：`GEMINI.md`

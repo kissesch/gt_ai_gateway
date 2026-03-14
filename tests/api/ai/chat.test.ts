@@ -177,6 +177,11 @@ describe("AI Chat API", () => {
             expect(parsedResponseData).toHaveProperty("object");
             expect(parsedResponseData.object).toBe("chat.completion.chunk");
             expect(parsedResponseData).toHaveProperty("choices");
+            expect(Array.isArray(parsedResponseData.choices)).toBe(true);
+            expect(parsedResponseData.choices[0]).toHaveProperty("message");
+            expect(parsedResponseData.choices[0].message).toHaveProperty("content");
+            expect(typeof parsedResponseData.choices[0].message.content).toBe("string");
+            expect(parsedResponseData.choices[0].message.content.length).toBeGreaterThan(0);
         }, 30000);
 
         it("should handle multiple messages in chat request", async () => {

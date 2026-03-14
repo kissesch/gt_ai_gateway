@@ -85,10 +85,11 @@ class SSEAccumulator {
     /**
      * 添加一条 SSE 消息
      * @param msg - SSE 消息对象
+     * @param eventType - SSE 事件类型（用于 Anthropic 格式）
      */
-    addMessage(msg: SSEMessage | AnthropicSSEMessage): void {
+    addMessage(msg: SSEMessage | AnthropicSSEMessage, eventType?: string): void {
         if (this.format === 'anthropic') {
-            this.handleAnthropicMessage(msg as AnthropicSSEMessage);
+            this.handleAnthropicMessage(msg as AnthropicSSEMessage, eventType);
         } else {
             this.handleOpenAIMessage(msg as SSEMessage);
         }
@@ -146,8 +147,10 @@ class SSEAccumulator {
 
     /**
      * 处理 Anthropic 格式的消息
+     * @param msg - SSE 消息对象
+     * @param eventType - SSE 事件类型（message_start, content_block_delta, message_stop 等）
      */
-    private handleAnthropicMessage(msg: AnthropicSSEMessage): void {
+    private handleAnthropicMessage(msg: AnthropicSSEMessage, eventType?: string): void {
         // 保存基本信息
         if (msg.message?.id) this.response.id = msg.message.id;
         if (msg.message?.model) this.response.model = msg.message.model;
@@ -155,6 +158,7 @@ class SSEAccumulator {
         if (msg.message?.stop_reason !== undefined) {
             this.response.choices[0].finish_reason = msg.message.stop_reason;
         }
+
         // Handle usage from message_start or message_stop events
         if (msg.message?.usage || msg.usage) {
             const usage = msg.usage || msg.message?.usage;
@@ -164,8 +168,10 @@ class SSEAccumulator {
                 total_tokens: (usage.input_tokens || 0) + (usage.output_tokens || 0),
             };
         }
-        // 累积文本内容
-        if (msg.delta?.text) {
+
+        // 根据 event 类型处理文本内容
+        // content_block_delta 事件中包含 delta 对象
+        if (eventType === 'content_block_delta' && msg.delta?.text) {
             this.response.choices[0].message.content += msg.delta.text;
         }
     }

@@ -10,6 +10,7 @@
 | **doc/FrontendDevManual.md** | 前端开发手册，包含环境配置、前端开发方式等 |
 | **doc/BackendDevManual.md** | 后端开发手册，包含环境配置、后端开发方式、API 开发等 |
 | **doc/TestManual.md** | 测试手册，描述测试环境的架构设计和操作流程 |
+| **doc/LlmApiUsage.md** | LLM API 使用指南，介绍如何调用网关提供的 LLM 接口 |
 
 ## 编程规范
 1. 代码使用 4 个空格缩进，每个方法之间空两行
