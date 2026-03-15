@@ -38,8 +38,10 @@
             </a-col>
             <a-col :span="6">
                 <StatisticCard
-                    title="请求成功率"
-                    :value="(statsStore.stats?.success_rate || 0) * 100"
+                    title="今日请求成功率"
+                    :value="statsStore.stats?.success_rate !== null && statsStore.stats?.success_rate !== undefined
+                        ? statsStore.stats.success_rate * 100
+                        : null"
                     :precision="1"
                     suffix="%"
                     :loading="statsStore.loading"
@@ -49,7 +51,7 @@
             </a-col>
             <a-col :span="6">
                 <StatisticCard
-                    title="活跃用户"
+                    title="今日活跃用户"
                     :value="statsStore.stats?.active_users || 0"
                     :loading="statsStore.loading"
                     :icon="UserOutlined"
@@ -58,7 +60,7 @@
             </a-col>
             <a-col :span="6">
                 <StatisticCard
-                    title="活跃模型"
+                    title="今日活跃模型"
                     :value="statsStore.stats?.active_models || 0"
                     :loading="statsStore.loading"
                     :icon="RobotOutlined"

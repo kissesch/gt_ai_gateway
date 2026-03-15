@@ -169,6 +169,11 @@ export const useRecordStore = defineStore('record', () => {
         currentRecord.value = null;
     }
 
+    function clearRecords(): void {
+        records.value = [];
+        total.value = 0;
+    }
+
     return {
         records,
         currentRecord,
@@ -182,5 +187,6 @@ export const useRecordStore = defineStore('record', () => {
         fetchRecordDetail,
         setAutoRefresh,
         clearCurrentRecord,
+        clearRecords,
     };
 });

@@ -84,7 +84,7 @@ import type { Vendor as VendorType } from '@/types/vendor';
 
 const router = useRouter();
 
-const { loading, data, pagination, searchForm, setPage } = useTable<Model>();
+const { loading, data, pagination, searchForm, setPage, clearData } = useTable<Model>();
 
 const createDialogRef = ref();
 const editDialogRef = ref();
@@ -132,6 +132,7 @@ async function loadData() {
 
 function handleSearch() {
     pagination.current = 1;
+    clearData();
     loadData();
 }
 
@@ -140,6 +141,7 @@ function handleReset() {
     searchForm.vendor_id = undefined;
     pagination.current = 1;
     pagination.pageSize = 10;
+    clearData();
     loadData();
 }
 

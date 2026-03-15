@@ -6,8 +6,14 @@ async function dashboardStats(c: Context) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // 获取所有记录
-    const allRecords = await SgRecord.query().get();
+    // Sutando get() 返回 Collection，不保证有原生数组的 length
+    const records = await SgRecord.query().get();
+    const allRecords = records.toData() as Array<{
+        user_id: number | null;
+        model_id: number | null;
+        status: string | null;
+        created_at: string | Date | null;
+    }>;
 
     // 今日请求数
     const todayRequests = allRecords.filter(r => {
@@ -16,17 +22,18 @@ async function dashboardStats(c: Context) {
         return recordDate >= today;
     });
 
-    // 成功率统计
-    const successCount = allRecords.filter(r => r.status === SgRecordStatus.SUCCESS).length;
-    const failedCount = allRecords.filter(r => r.status === SgRecordStatus.FAILED).length;
+    // 今日成功率统计
+    const successCount = todayRequests.filter(r => r.status === SgRecordStatus.SUCCESS).length;
+    const failedCount = todayRequests.filter(r => r.status === SgRecordStatus.FAILED).length;
     const totalRequests = allRecords.length;
-    const successRate = totalRequests > 0 ? successCount / totalRequests : 0;
+    const todayTotalRequests = todayRequests.length;
+    const successRate = todayTotalRequests > 0 ? successCount / todayTotalRequests : null;
 
-    // 活跃用户（有请求的用户）
-    const activeUserIds = new Set(allRecords.map(r => r.user_id).filter(Boolean));
+    // 今日活跃用户（今天有请求的用户）
+    const activeUserIds = new Set(todayRequests.map(r => r.user_id).filter(Boolean));
 
-    // 活跃模型（有请求的模型）
-    const activeModelIds = new Set(allRecords.map(r => r.model_id).filter(Boolean));
+    // 今日活跃模型（今天有请求的模型）
+    const activeModelIds = new Set(todayRequests.map(r => r.model_id).filter(Boolean));
 
     return c.json({
         total_requests: totalRequests,

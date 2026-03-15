@@ -8,7 +8,7 @@
                 <div class="statistic-title">{{ title }}</div>
                 <div class="statistic-value" :style="{ color: color }">
                     {{ displayValue }}
-                    <span v-if="suffix" class="statistic-suffix">{{ suffix }}</span>
+                    <span v-if="showSuffix" class="statistic-suffix">{{ suffix }}</span>
                 </div>
                 <div v-if="description" class="statistic-description">
                     {{ description }}
@@ -23,7 +23,7 @@ import { computed, type Component } from 'vue';
 
 interface Props {
     title: string;
-    value: number | string;
+    value: number | string | null;
     precision?: number;
     suffix?: string;
     icon?: Component;
@@ -42,10 +42,18 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const displayValue = computed(() => {
+    if (props.value === null || props.value === undefined || props.value === '') {
+        return '-';
+    }
+
     if (typeof props.value === 'number' && props.precision !== undefined) {
         return props.value.toFixed(props.precision);
     }
     return props.value;
+});
+
+const showSuffix = computed(() => {
+    return displayValue.value !== '-' && !!props.suffix;
 });
 </script>
 

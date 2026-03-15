@@ -22,7 +22,7 @@ export const useStatsStore = defineStore('stats', () => {
     });
 
     const successRateFormatted = computed(() => {
-        if (!stats.value) return '0%';
+        if (!stats.value || stats.value.success_rate === null) return '-';
         return `${(stats.value.success_rate * 100).toFixed(1)}%`;
     });
 

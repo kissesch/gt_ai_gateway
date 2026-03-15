@@ -58,7 +58,12 @@
                             @change="handleAutoRefreshChange"
                         />
                     </a-tooltip>
-                    <span class="refresh-hint">自动刷新</span>
+                    <span class="refresh-hint">
+                        自动刷新
+                        <template v-if="autoRefreshEnabled">
+                            ({{ remainingSeconds }} 秒后刷新)
+                        </template>
+                    </span>
                 </a-space>
             </div>
         </div>
@@ -102,7 +107,11 @@ const pagination = reactive({
     pageSizeOptions: ['10', '20', '50', '100'],
 });
 
-const { start: startAutoRefresh, stop: stopAutoRefresh } = useAutoRefresh({
+const {
+    start: startAutoRefresh,
+    stop: stopAutoRefresh,
+    remainingSeconds,
+} = useAutoRefresh({
     callback: () => {
         loadData();
     },
@@ -131,6 +140,7 @@ async function loadData() {
 
 function handleSearch() {
     pagination.current = 1;
+    recordStore.clearRecords();
     loadData();
 }
 
@@ -143,6 +153,7 @@ function handleReset() {
     dateRange.value = null;
     pagination.current = 1;
     pagination.pageSize = 10;
+    recordStore.clearRecords();
     loadData();
 }
 

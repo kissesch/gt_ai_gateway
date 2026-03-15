@@ -30,6 +30,12 @@ export function useTable<T>(defaultPageSize: number = 10) {
         pagination.current = 1;
     }
 
+    function clearData() {
+        data.value = [];
+        total.value = 0;
+        pagination.total = 0;
+    }
+
     return {
         loading,
         data,
@@ -38,5 +44,6 @@ export function useTable<T>(defaultPageSize: number = 10) {
         searchForm,
         setPage,
         resetSearch,
+        clearData,
     };
 }

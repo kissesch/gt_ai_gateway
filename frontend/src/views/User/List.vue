@@ -70,7 +70,7 @@ import type { User } from '@/types/user';
 
 const router = useRouter();
 
-const { loading, data, pagination, searchForm, setPage } = useTable<User>();
+const { loading, data, pagination, searchForm, setPage, clearData } = useTable<User>();
 
 const createDialogRef = ref();
 
@@ -101,6 +101,7 @@ async function loadData() {
 
 function handleSearch() {
     pagination.current = 1;
+    clearData();
     loadData();
 }
 
@@ -109,6 +110,7 @@ function handleReset() {
     searchForm.type = undefined;
     pagination.current = 1;
     pagination.pageSize = 10;
+    clearData();
     loadData();
 }
 

@@ -4,7 +4,7 @@ export interface DashboardStats {
     total_requests: number;
     success_count: number;
     failed_count: number;
-    success_rate: number;
+    success_rate: number | null;
     active_users: number;
     active_models: number;
     today_requests: number;
