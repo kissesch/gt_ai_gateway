@@ -58,6 +58,7 @@ COPY --from=builder /app/src ./src
 COPY --from=builder /app/frontend/dist ./frontend/dist
 COPY --from=builder /app/script ./script
 COPY --from=builder /app/resource ./resource
+COPY --from=builder /app/package*.json ./package*.json
 
 # 暴露端口
 EXPOSE 8787
