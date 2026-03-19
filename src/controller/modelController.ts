@@ -22,9 +22,9 @@ async function checkDuplicateEnabledModel(
 
 async function createModel(c: Context) {
     const body = await c.req.json();
-    const { name, vendor_id, enable = true } = body;
+    const { name, vendor_id, enable = true, input_price = 0, output_price = 0 } = body;
 
-    console.log("[modelController] Creating model:", { name, vendor_id, enable });
+    console.log("[modelController] Creating model:", { name, vendor_id, enable, input_price, output_price });
 
     // Validate required fields
     if (!name || !vendor_id) {
@@ -49,6 +49,8 @@ async function createModel(c: Context) {
         name,
         vendor_id,
         enable,
+        input_price,
+        output_price,
     });
 
     console.log("[modelController] Model created successfully:", instance);
@@ -105,19 +107,23 @@ async function updateModel(c: Context) {
         throw new customError.AppError("Invalid ID format");
     }
 
-    const { name, vendor_id, enable } = await c.req.json();
+    const { name, vendor_id, enable, input_price, output_price } = await c.req.json();
 
     console.log("[modelController] Updating model:", {
         modelId,
         name,
         vendor_id,
         enable,
+        input_price,
+        output_price,
     });
 
     const updatedModel = await modelService.updateModel(modelId, {
         name,
         vendor_id,
         enable,
+        input_price,
+        output_price,
     });
 
     if (!updatedModel) {

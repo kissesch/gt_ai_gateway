@@ -24,6 +24,7 @@ class SgRecord extends Model {
     first_token_latency!: number | null;
     start_at!: Date | null;
     end_at!: Date | null;
+    cost!: number;
 
     created_at!: Date;
     updated_at!: Date;

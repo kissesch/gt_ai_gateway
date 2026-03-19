@@ -35,7 +35,7 @@ async function checkDuplicateEnabledModel(
 
 async function updateModel(
     modelId: number,
-    data: { name?: string; vendor_id?: number; enable?: boolean },
+    data: { name?: string; vendor_id?: number; enable?: boolean; input_price?: number; output_price?: number },
 ): Promise<SgModel | null> {
     const model = await SgModel.query().find(modelId);
 
@@ -62,14 +62,24 @@ async function updateModel(
         }
     }
 
-    // Note: Only name, vendor_id, and enable can be updated. The id cannot be modified.
+    // Note: name, vendor_id, enable, input_price, output_price can be updated. The id cannot be modified.
+    const updateData: Record<string, unknown> = {
+        name: newName,
+        vendor_id: data.vendor_id ?? model.vendor_id,
+        enable: newEnable,
+    };
+
+    if (data.input_price !== undefined) {
+        updateData.input_price = data.input_price;
+    }
+
+    if (data.output_price !== undefined) {
+        updateData.output_price = data.output_price;
+    }
+
     await SgModel.query()
         .where("id", modelId)
-        .update({
-            name: newName,
-            vendor_id: data.vendor_id ?? model.vendor_id,
-            enable: newEnable,
-        });
+        .update(updateData);
 
     return await SgModel.query().find(modelId);
 }

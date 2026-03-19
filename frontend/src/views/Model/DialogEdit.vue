@@ -33,6 +33,31 @@
             <a-form-item label="状态" name="enable">
                 <a-switch v-model:checked="formState.enable" />
             </a-form-item>
+            <a-divider>计费设置</a-divider>
+            <a-form-item label="输入价格 (元/千tokens)" name="input_price">
+                <a-input-number
+                    v-model:value="formState.input_price"
+                    placeholder="请输入输入价格"
+                    :min="0"
+                    :precision="6"
+                    style="width: 100%"
+                />
+                <template #extra>
+                    <span style="color: #999; font-size: 12px">输入token的计费价格，单位：元/千tokens</span>
+                </template>
+            </a-form-item>
+            <a-form-item label="输出价格 (元/千tokens)" name="output_price">
+                <a-input-number
+                    v-model:value="formState.output_price"
+                    placeholder="请输入输出价格"
+                    :min="0"
+                    :precision="6"
+                    style="width: 100%"
+                />
+                <template #extra>
+                    <span style="color: #999; font-size: 12px">输出token的计费价格，单位：元/千tokens</span>
+                </template>
+            </a-form-item>
         </a-form>
     </a-modal>
 </template>
@@ -60,6 +85,8 @@ const formState = reactive({
     name: '',
     vendor_id: undefined as number | undefined,
     enable: true,
+    input_price: 0,
+    output_price: 0,
 });
 
 const rules = {
@@ -85,6 +112,8 @@ function open(model: Model) {
     formState.name = model.name;
     formState.vendor_id = model.vendor_id;
     formState.enable = model.enable;
+    formState.input_price = model.input_price;
+    formState.output_price = model.output_price;
     currentId.value = model.id;
     loadVendors();
     visible.value = true;
@@ -110,6 +139,8 @@ function handleCancel() {
     formState.name = '';
     formState.vendor_id = undefined;
     formState.enable = true;
+    formState.input_price = 0;
+    formState.output_price = 0;
 }
 
 defineExpose({ open });

@@ -28,6 +28,7 @@ async function create(
         first_token_latency: null,
         start_at: null,
         end_at: null,
+        cost: 0,
     });
 }
 

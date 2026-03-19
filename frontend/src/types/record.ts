@@ -13,6 +13,7 @@ export interface Record extends BaseEntity {
     first_token_latency: number | null;
     start_at: string | number | null;
     end_at: string | number | null;
+    cost: number;
 
     // 关联数据
     user_name?: string | null;

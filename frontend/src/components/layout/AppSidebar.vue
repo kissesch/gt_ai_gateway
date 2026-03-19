@@ -27,6 +27,10 @@
                     <FileTextOutlined />
                     <span>请求记录</span>
                 </a-menu-item>
+                <a-menu-item key="/balance">
+                    <DollarOutlined />
+                    <span>余额管理</span>
+                </a-menu-item>
                 <a-menu-item key="/api-test">
                     <ExperimentOutlined />
                     <span>API 测试</span>
@@ -58,7 +62,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { DashboardOutlined, UserOutlined, ApiOutlined, SettingOutlined, FileTextOutlined, ExperimentOutlined, MenuFoldOutlined, MenuUnfoldOutlined, LinkOutlined } from '@ant-design/icons-vue';
+import { DashboardOutlined, UserOutlined, ApiOutlined, SettingOutlined, FileTextOutlined, ExperimentOutlined, MenuFoldOutlined, MenuUnfoldOutlined, LinkOutlined, DollarOutlined } from '@ant-design/icons-vue';
 import { useAppStore } from '@/stores/app';
 
 const router = useRouter();
@@ -74,6 +78,7 @@ const selectedKeys = computed(() => {
     if (path.startsWith('/vendor')) return ['/vendor'];
     if (path.startsWith('/model')) return ['/model'];
     if (path.startsWith('/record')) return ['/record'];
+    if (path.startsWith('/balance')) return ['/balance'];
     if (path.startsWith('/api-test')) return ['/api-test'];
     if (path.startsWith('/integration')) return ['/integration'];
     return [path];

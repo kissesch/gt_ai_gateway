@@ -6,6 +6,7 @@ export interface User extends BaseEntity {
     name: string;
     token: string;
     type: UserType;
+    balance: number;
 }
 
 export interface CreateUserRequest {
@@ -21,4 +22,10 @@ export interface UpdateUserRequest {
 
 export interface UserQuery extends TableQuery {
     type?: UserType;
+}
+
+export interface AdjustBalanceRequest {
+    amount: number;
+    type: 'recharge' | 'adjustment';
+    remark?: string;
 }

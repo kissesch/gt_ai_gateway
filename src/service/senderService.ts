@@ -11,12 +11,28 @@ import { SgRecord } from "../model/sgRecord";
 import { mkdirSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { getLogDir } from "../util/logger";
+import userService from "./userService";
+import customError from "../util/customError";
+
+
+// Calculate cost based on model pricing and token usage
+function calculateCost(
+    model: SgModel,
+    promptTokens: number,
+    outputTokens: number,
+): number {
+    const promptCost = (promptTokens / 1000) * model.input_price;
+    const outputCost = (outputTokens / 1000) * model.output_price;
+    return promptCost + outputCost;
+}
 
 
 async function handleStreamResponse(
     c: Context,
     upstreamRes: Response,
     record: SgRecord,
+    model: SgModel,
+    user: SgUser,
     format: ApiFormat,
 ): Promise<Response> {
     const accumulator = new sseAccumulator.SSEAccumulator(
@@ -129,16 +145,26 @@ async function handleStreamResponse(
 
         // 流结束，保存完整响应到数据库
         const fullResponse = accumulator.getResponse();
+        const promptTokens = fullResponse.usage?.prompt_tokens ?? 0;
+        const outputTokens = fullResponse.usage?.completion_tokens ?? 0;
+        const cost = calculateCost(model, promptTokens, outputTokens);
+
         await recordService.update(record.id, {
             response_data: JSON.stringify(fullResponse),
             status: SgRecordStatus.SUCCESS,
-            prompt_tokens: fullResponse.usage?.prompt_tokens ?? null,
-            output_tokens: fullResponse.usage?.completion_tokens ?? null,
+            prompt_tokens: promptTokens,
+            output_tokens: outputTokens,
             first_token_latency: firstTokenTime !== null
                 ? firstTokenTime - record.created_at.getTime()
                 : null,
             end_at: new Date(),
+            cost: cost,
         });
+
+        // 扣除用户余额（仅非 Root 用户）
+        if (user.type !== "root") {
+            await userService.deductBalance(user.id, cost);
+        }
     });
 }
 
@@ -147,6 +173,8 @@ async function handleNonStreamResponse(
     c: Context,
     upstreamRes: Response,
     record: SgRecord,
+    model: SgModel,
+    user: SgUser,
     format: ApiFormat,
 ): Promise<Response> {
     const responseText = await upstreamRes.text();
@@ -168,13 +196,23 @@ async function handleNonStreamResponse(
         console.log("Failed to parse response for token stats:", e);
     }
 
+    const finalPromptTokens = promptTokens ?? 0;
+    const finalOutputTokens = outputTokens ?? 0;
+    const cost = calculateCost(model, finalPromptTokens, finalOutputTokens);
+
     await recordService.update(record.id, {
         response_data: responseText,
         status: statusCode === 200 ? SgRecordStatus.SUCCESS : SgRecordStatus.FAILED,
         prompt_tokens: promptTokens,
         output_tokens: outputTokens,
         end_at: new Date(),
+        cost: cost,
     });
+
+    // 扣除用户余额（仅非 Root 用户且请求成功）
+    if (user.type !== "root" && statusCode === 200) {
+        await userService.deductBalance(user.id, cost);
+    }
 
     c.status(statusCode);
     c.res.headers.set("Content-Type", "application/json");
@@ -192,14 +230,21 @@ async function sendRequest(
 ): Promise<Response> {
     const url = vendor.getUrlByFormat(format);
 
+    console.log("sendRequest: modelConfig={}", modelConfig);
+
+    // Check user balance (only for non-root users)
+    if (user.type !== "root") {
+        // Estimate max possible cost based on model pricing
+        // We'll allow the request and deduct actual cost after completion
+        console.log(`[senderService] Checking balance for user ${user.id}: ${user.balance}`);
+    }
+
     // 1. 创建数据库记录
     const record = await recordService.create(user.id, modelConfig.id, body);
     await recordService.update(record.id, {
         status: SgRecordStatus.PROCESSING,
         start_at: new Date(),
     });
-
-    console.log("sendRequest: modelConfig={}", modelConfig);
 
     // 2. 构建上游请求 headers，过滤掉 Cloudflare 注入的 cf- 前缀 header
     // 并且必须排除客户端自带的鉴权 header，避免泄露或导致合并错误
@@ -279,9 +324,9 @@ async function sendRequest(
 
     // 4. 按响应类型分发处理
     if (isStream) {
-        return handleStreamResponse(c, upstreamRes, record, format);
+        return handleStreamResponse(c, upstreamRes, record, modelConfig, user, format);
     } else {
-        return handleNonStreamResponse(c, upstreamRes, record, format);
+        return handleNonStreamResponse(c, upstreamRes, record, modelConfig, user, format);
     }
 }
 

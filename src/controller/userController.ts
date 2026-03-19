@@ -1,6 +1,7 @@
 import { Context } from "hono";
 import { SgUser } from "../model/sgUser";
 import { UserType } from "../constants";
+import userService from "../service/userService";
 
 async function listUsers(c: Context) {
     const users = await SgUser.query().get();
@@ -27,7 +28,7 @@ async function getUser(c: Context) {
 async function getUsersByIds(c: Context) {
     const body = await c.req.json();
     const ids = body.ids;
-    
+
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
         return c.json([]);
     }
@@ -56,6 +57,7 @@ async function createUser(c: Context) {
             name,
             token,
             type: type || UserType.NORMAL,
+            balance: 0,
         });
 
         console.log("[userController] User created successfully:", instance);
@@ -104,10 +106,34 @@ async function updateUser(c: Context) {
     return c.json(updatedUser);
 }
 
+async function adjustBalance(c: Context) {
+    const id = c.req.param("id");
+    const userId = parseInt(id, 10);
+
+    if (isNaN(userId)) {
+        return c.json({ error: "Invalid ID format" }, 400);
+    }
+
+    const body = await c.req.json();
+    const { amount, type, remark } = body;
+
+    if (typeof amount !== "number") {
+        return c.json({ error: "Invalid amount" }, 400);
+    }
+
+    if (!type || (type !== "recharge" && type !== "adjustment")) {
+        return c.json({ error: "Invalid type, must be 'recharge' or 'adjustment'" }, 400);
+    }
+
+    const updatedUser = await userService.adjustBalance(userId, amount, type, remark);
+    return c.json(updatedUser);
+}
+
 export default {
     listUsers,
     getUser,
     getUsersByIds,
     createUser,
     updateUser,
+    adjustBalance,
 };

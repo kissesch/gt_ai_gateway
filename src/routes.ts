@@ -9,6 +9,7 @@ import vendorController from "./controller/vendorController";
 import recordController from "./controller/recordController";
 import systemController from "./controller/systemController";
 import statsController from "./controller/statsController";
+import balanceController from "./controller/balanceController";
 import ormService from "./service/ormService";
 import authMiddleware from "./middleware/authMiddleware";
 import customError from "./util/customError";
@@ -91,6 +92,11 @@ app.post("/user/batch.json", authMiddleware.requireAdmin, userController.getUser
 app.get("/user/:id", authMiddleware.requireAdmin, userController.getUser);
 app.post("/user/create.json", authMiddleware.requireAdmin, userController.createUser);
 app.put("/user/:id", authMiddleware.requireAdmin, userController.updateUser);
+app.post("/user/:id/balance/adjust.json", authMiddleware.requireAdmin, userController.adjustBalance);
+
+// Balance (需要管理员权限)
+app.get("/balance/recharge/list.json", authMiddleware.requireAdmin, balanceController.listRechargeRecords);
+app.get("/balance/recharge/:id", authMiddleware.requireAdmin, balanceController.getRechargeRecord);
 
 // Record (需要管理员权限)
 app.get("/record/list.json", authMiddleware.requireAdmin, recordController.listRecords);

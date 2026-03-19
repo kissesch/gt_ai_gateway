@@ -1,15 +1,16 @@
 import { Model } from "sutando";
 import { inspect, InspectOptions } from "util";
-import { UserType } from "../constants";
 
-class SgUser extends Model {
-    table = "user";
+class SgRechargeRecord extends Model {
+    table = "recharge_records";
 
     id!: number;
-    name!: string;
-    token!: string;
-    type!: UserType;
-    balance!: number;
+
+    user_id!: number;
+    amount!: number;
+    type!: string; // 'recharge' or 'adjustment'
+    remark!: string | null;
+    operator!: string | null;
 
     created_at!: Date;
     updated_at!: Date;
@@ -19,4 +20,4 @@ class SgUser extends Model {
     }
 }
 
-export { SgUser };
+export { SgRechargeRecord };

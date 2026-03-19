@@ -17,6 +17,7 @@ import ModelDetail from '@/views/Model/Detail.vue';
 import RecordIndex from '@/views/Record/Index.vue';
 import RecordList from '@/views/Record/List.vue';
 import RecordDetail from '@/views/Record/Detail.vue';
+import BalanceIndex from '@/views/Balance/Index.vue';
 import ApiTestIndex from '@/views/ApiTest/Index.vue';
 import IntegrationIndex from '@/views/Integration/Index.vue';
 
@@ -111,6 +112,12 @@ const routes: RouteRecordRaw[] = [
                         component: RecordDetail,
                     },
                 ],
+            },
+            {
+                path: 'balance',
+                name: 'Balance',
+                component: BalanceIndex,
+                meta: { title: '余额管理' },
             },
             {
                 path: 'api-test',
