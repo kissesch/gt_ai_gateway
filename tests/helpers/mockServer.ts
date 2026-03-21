@@ -1,5 +1,4 @@
 import { createServer, IncomingMessage, ServerResponse } from "http";
-import net from "net";
 import { createWriteStream, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 
@@ -39,22 +38,16 @@ function mockLog(message: string): void {
     }
 }
 
-/**
- * Check if a port is in use
- */
-function isPortInUse(port: number): Promise<boolean> {
-    return new Promise((resolve) => {
-        const tester = net.createServer()
-            .once("error", () => {
-                resolve(true);
-            })
-            .once("listening", () => {
-                tester.once("close", () => {
-                    resolve(false);
-                }).close();
-            })
-            .listen(port);
-    });
+function formatListenError(port: number, error: NodeJS.ErrnoException): string {
+    switch (error.code) {
+        case "EADDRINUSE":
+            return `Port ${port} is already in use. Please stop any existing mock server or process using this port.`;
+        case "EACCES":
+        case "EPERM":
+            return `Port ${port} cannot be opened in the current environment (${error.code}). Check local permissions or sandbox restrictions.`;
+        default:
+            return `Failed to start mock server on port ${port}: ${error.message}`;
+    }
 }
 
 /**
@@ -72,28 +65,16 @@ async function startMockServer(port: number = DEFAULT_MOCK_PORT): Promise<any> {
         return null;
     }
 
-    // Check if port is already in use
-    const portInUse = await isPortInUse(port);
-    if (portInUse) {
-        const errorMsg = `Port ${port} is already in use. Please stop any existing mock server or process using this port.`;
-        mockLog(`Error: ${errorMsg}`);
-        throw new Error(errorMsg);
-    }
-
     return new Promise((resolve, reject) => {
         server = createServer((req: IncomingMessage, res: ServerResponse) => {
             handleRequest(req, res);
         });
 
         server.on("error", (err) => {
-            if ((err as any).code === "EADDRINUSE") {
-                const errorMsg = `Port ${port} is already in use. Please stop any existing mock server or process using this port.`;
-                mockLog(`Error: ${errorMsg}`);
-                reject(new Error(errorMsg));
-            } else {
-                mockLog(`Error: ${err}`);
-                reject(err);
-            }
+            const nodeError = err as NodeJS.ErrnoException;
+            const errorMsg = formatListenError(port, nodeError);
+            mockLog(`Error: ${errorMsg}`);
+            reject(new Error(errorMsg));
         });
 
         server.listen(port, () => {
