@@ -1,0 +1,21 @@
+data: {"type":"response.created","sequence_number":0,"response":{"id":"resp_abc123","object":"response","created_at":1777005899,"model":"gpt-4o","status":"in_progress","output":[],"usage":null}}
+
+data: {"type":"response.in_progress","sequence_number":1,"response":{"id":"resp_abc123","object":"response","created_at":1777005899,"model":"gpt-4o","status":"in_progress","output":[],"usage":null}}
+
+data: {"type":"response.output_item.added","sequence_number":2,"output_index":0,"item":{"id":"msg_def456","type":"message","role":"assistant","status":"in_progress","content":[]}}
+
+data: {"type":"response.content_part.added","sequence_number":3,"output_index":0,"content_index":0,"item_id":"msg_def456","part":{"type":"output_text","text":"","annotations":[]}}
+
+data: {"type":"response.output_text.delta","sequence_number":4,"output_index":0,"content_index":0,"item_id":"msg_def456","delta":"Hello"}
+
+data: {"type":"response.output_text.delta","sequence_number":5,"output_index":0,"content_index":0,"item_id":"msg_def456","delta":"! How"}
+
+data: {"type":"response.output_text.delta","sequence_number":6,"output_index":0,"content_index":0,"item_id":"msg_def456","delta":" can I help you?"}
+
+data: {"type":"response.output_text.done","sequence_number":7,"output_index":0,"content_index":0,"item_id":"msg_def456","text":"Hello! How can I help you?"}
+
+data: {"type":"response.content_part.done","sequence_number":8,"output_index":0,"content_index":0,"item_id":"msg_def456","part":{"type":"output_text","text":"Hello! How can I help you?","annotations":[]}}
+
+data: {"type":"response.output_item.done","sequence_number":9,"output_index":0,"item":{"id":"msg_def456","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"Hello! How can I help you?","annotations":[]}]}}
+
+data: {"type":"response.completed","sequence_number":10,"response":{"id":"resp_abc123","object":"response","created_at":1777005899,"model":"gpt-4o","status":"completed","output":[{"id":"msg_def456","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"Hello! How can I help you?","annotations":[]}]}],"usage":{"input_tokens":10,"input_tokens_details":{"cached_tokens":0},"output_tokens":8,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":18},"completed_at":1777005901}}
