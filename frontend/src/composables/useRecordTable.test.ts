@@ -24,8 +24,8 @@ describe('useRecordTable', () => {
         const recordTable = useRecordTable();
 
         recordTable.searchForm.status = 'success';
-        recordTable.searchForm.user_name = 'alice';
-        recordTable.searchForm.model_name = 'gpt-4';
+        recordTable.searchForm.user_ids = [1, 2];
+        recordTable.searchForm.model_ids = [3];
         recordTable.pagination.current = 3;
         recordTable.pagination.pageSize = 20;
 
@@ -35,8 +35,8 @@ describe('useRecordTable', () => {
             page: 3,
             pageSize: 20,
             status: 'success',
-            user_name: 'alice',
-            model_name: 'gpt-4',
+            user_ids: '1,2',
+            model_ids: '3',
             start_time: undefined,
             end_time: undefined,
         });
@@ -47,8 +47,8 @@ describe('useRecordTable', () => {
         const recordTable = useRecordTable();
 
         recordTable.searchForm.status = 'failed';
-        recordTable.searchForm.user_name = 'bob';
-        recordTable.searchForm.model_name = 'test-model';
+        recordTable.searchForm.user_ids = [5];
+        recordTable.searchForm.model_ids = [10, 11];
         recordTable.searchForm.start_time = '2026-03-21 10:00:00';
         recordTable.searchForm.end_time = '2026-03-21 11:00:00';
         recordTable.pagination.current = 4;
@@ -57,8 +57,8 @@ describe('useRecordTable', () => {
         recordTable.handleReset();
 
         expect(recordTable.searchForm.status).toBeUndefined();
-        expect(recordTable.searchForm.user_name).toBeUndefined();
-        expect(recordTable.searchForm.model_name).toBeUndefined();
+        expect(recordTable.searchForm.user_ids).toBeUndefined();
+        expect(recordTable.searchForm.model_ids).toBeUndefined();
         expect(recordTable.searchForm.start_time).toBeUndefined();
         expect(recordTable.searchForm.end_time).toBeUndefined();
         expect(recordTable.pagination.current).toBe(1);
@@ -69,8 +69,8 @@ describe('useRecordTable', () => {
             page: 1,
             pageSize: 10,
             status: undefined,
-            user_name: undefined,
-            model_name: undefined,
+            user_ids: undefined,
+            model_ids: undefined,
             start_time: undefined,
             end_time: undefined,
         });

@@ -92,6 +92,7 @@ import { useRecordTable } from '@/composables/useRecordTable';
 import RecordTable from '@/components/common/RecordTable.vue';
 import { listUsers } from '@/api/user';
 import { listModels } from '@/api/model';
+import { normalizeListResponse } from '@/utils/listResponse';
 
 const userOptions = ref<{ value: number; label: string }[]>([]);
 const modelOptions = ref<{ value: number; label: string }[]>([]);
@@ -107,9 +108,9 @@ async function loadSelectOptions() {
     ]);
     userOptions.value = [
         { value: -1, label: 'root' },
-        ...(usersRes.list || []).map(u => ({ value: Number(u.id), label: u.name })),
+        ...normalizeListResponse(usersRes).list.map(u => ({ value: Number(u.id), label: u.name })),
     ];
-    modelOptions.value = (modelsRes.list || []).map(m => ({ value: Number(m.id), label: m.name }));
+    modelOptions.value = normalizeListResponse(modelsRes).list.map(m => ({ value: Number(m.id), label: m.name }));
 }
 
 const {
