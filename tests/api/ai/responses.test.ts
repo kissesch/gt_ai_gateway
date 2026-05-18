@@ -5,6 +5,7 @@ import modelFixtures from "../../fixtures/modelFixtures";
 import dbHelper from "../../helpers/dbHelper";
 import { setupAdminUser } from "../../globalSetup";
 import config from "../../config";
+import streamLogHelper from "../../helpers/streamLogHelper";
 
 /**
  * OpenAI Responses API Endpoint Tests
@@ -120,6 +121,13 @@ describe("AI Responses API", () => {
             expect(record.status).toBe("success");
             expect(record.prompt_tokens).toBeGreaterThan(0);
             expect(record.output_tokens).toBeGreaterThan(0);
+
+            if (config.TEST_MODE === "node" && process.env.STREAM_LOG_ENABLED === "true") {
+                const streamLog = await streamLogHelper.readStreamLog(record.id);
+                expect(streamLog).toContain("response.created");
+                expect(streamLog).toContain("response.output_text.delta");
+                expect(streamLog).toContain("response.completed");
+            }
         }, 30000);
     });
 });

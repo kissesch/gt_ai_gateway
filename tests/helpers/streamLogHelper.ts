@@ -43,6 +43,13 @@ async function moveStreamLogToResource(
     };
 }
 
+
+async function readStreamLog(recordId: number): Promise<string> {
+    const sourcePath = await waitForStreamLog(recordId);
+    return readFileSync(sourcePath, "utf-8");
+}
+
+
 function normalizeStreamLog(content: string, targetFileName: string): string {
     if (targetFileName.includes("openai")) {
         const parts = content.split("data: [DONE]");
@@ -62,4 +69,5 @@ function normalizeStreamLog(content: string, targetFileName: string): string {
 
 export default {
     moveStreamLogToResource,
+    readStreamLog,
 };
