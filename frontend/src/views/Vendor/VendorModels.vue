@@ -1,9 +1,12 @@
 <template>
     <div class="vendor-models">
-        <a-page-header
-            :title="`${vendorName} · 供应商模型`"
-            @back="handleBack"
-        />
+        <a-breadcrumb class="page-breadcrumb">
+            <a-breadcrumb-item>
+                <a @click.prevent="handleBack">供应商管理</a>
+            </a-breadcrumb-item>
+            <a-breadcrumb-item>{{ vendorName }}</a-breadcrumb-item>
+            <a-breadcrumb-item>供应商模型</a-breadcrumb-item>
+        </a-breadcrumb>
 
         <a-card>
             <div class="card-toolbar">
@@ -212,6 +215,10 @@ function handleBack() {
 <style scoped>
 .vendor-models {
     padding: 0;
+}
+
+.page-breadcrumb {
+    margin-bottom: 16px;
 }
 
 .card-toolbar {
