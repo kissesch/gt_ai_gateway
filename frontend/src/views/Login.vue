@@ -1,6 +1,6 @@
 <template>
     <div class="login-container">
-        <a-card class="login-card" title="Serverless AI Gateway">
+        <a-card class="login-card" title="GT AI Gateway">
             <a-form
                 :model="formState"
                 :rules="rules"

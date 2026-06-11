@@ -1,4 +1,4 @@
-# Serverless AI Gateway
+# GT AI Gateway
 
 一个轻量级的 AI 服务网关，支持 OpenAI 和 Anthropic API 格式的请求转发、模型路由和请求记录。
 

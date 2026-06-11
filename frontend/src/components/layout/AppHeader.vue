@@ -87,7 +87,7 @@ const MoonIcon = {
     },
 };
 
-const title = computed(() => 'AI Gateway');
+const title = computed(() => 'GT AI Gateway');
 
 function handleLogout() {
     authStore.logout();
