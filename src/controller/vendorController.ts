@@ -216,7 +216,7 @@ async function testVendor(c: Context) {
         upstreamBody = JSON.stringify({
             model: model,
             messages: [{ role: "user", content: "ping" }],
-            max_tokens: 1,
+            max_tokens: 5,
         });
     }
 

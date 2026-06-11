@@ -44,6 +44,19 @@
                         <a-descriptions-item label="供应商">
                             {{ recordStore.currentRecord.vendor_name || '-' }}
                         </a-descriptions-item>
+                        <a-descriptions-item label="供应商模型">
+                            {{ recordStore.currentRecord.vendor_model_name || '-' }}
+                        </a-descriptions-item>
+                        <a-descriptions-item label="协议">
+                            <span v-if="recordStore.currentRecord.client_format">
+                                <a-tag>{{ recordStore.currentRecord.client_format.toUpperCase() }}</a-tag>
+                                <template v-if="recordStore.currentRecord.upstream_format">
+                                    <span class="protocol-arrow">→</span>
+                                    <a-tag color="orange">{{ recordStore.currentRecord.upstream_format.toUpperCase() }}</a-tag>
+                                </template>
+                            </span>
+                            <span v-else>-</span>
+                        </a-descriptions-item>
                         <a-descriptions-item label="创建时间">
                             {{ formatDate(recordStore.currentRecord.created_at) }}
                         </a-descriptions-item>
@@ -287,5 +300,11 @@ function downloadJson(data: string | null, type: 'request' | 'response') {
 
 .token-icon.output {
     color: #52c41a;
+}
+
+.protocol-arrow {
+    margin: 0 4px;
+    color: #8c8c8c;
+    font-size: 12px;
 }
 </style>

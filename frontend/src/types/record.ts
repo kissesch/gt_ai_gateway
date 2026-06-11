@@ -78,4 +78,5 @@ export interface RecordDetail extends Record {
     user_name?: string | null;
     model_name?: string | null;
     vendor_name?: string | null;
+    vendor_model_name?: string | null;
 }

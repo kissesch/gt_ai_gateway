@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import { listRecords, latestRecords, getRecord } from '@/api/record';
 import { getUser, fetchUsersByIds } from '@/api/user';
 import { getModel, fetchModelsByIds } from '@/api/model';
-import { getVendor, fetchVendorsByIds } from '@/api/vendor';
+import { getVendor, fetchVendorsByIds, fetchVendorModelsByIds } from '@/api/vendor';
 import type { Record, RecordQuery, RecordDetail } from '@/types/record';
 
 
@@ -118,6 +118,7 @@ export const useRecordStore = defineStore('record', () => {
                 user_name: null,
                 model_name: null,
                 vendor_name: null,
+                vendor_model_name: null,
             };
 
             // 并行查询用户、模型和供应商信息
@@ -137,16 +138,32 @@ export const useRecordStore = defineStore('record', () => {
 
             if (record.model_id) {
                 promises.push(
-                    getModel(record.model_id).then(model => {
+                    getModel(record.model_id).then(async model => {
                         recordDetail.model_name = model.name;
-                        // 如果有供应商ID，查询供应商名称
-                        if (model.vendor_id) {
-                            return getVendor(model.vendor_id).then(vendor => {
-                                recordDetail.vendor_name = vendor.name;
-                            }).catch(() => {
-                                recordDetail.vendor_name = `供应商${model.vendor_id}`;
-                            });
+
+                        const subPromises: Promise<void>[] = [];
+
+                        if (model.vendor_model_id) {
+                            subPromises.push(
+                                fetchVendorModelsByIds([model.vendor_model_id]).then(vms => {
+                                    if (vms.length > 0) {
+                                        recordDetail.vendor_model_name = vms[0]!.model_id;
+                                    }
+                                }).catch(() => {})
+                            );
                         }
+
+                        if (model.vendor_id) {
+                            subPromises.push(
+                                getVendor(model.vendor_id).then(vendor => {
+                                    recordDetail.vendor_name = vendor.name;
+                                }).catch(() => {
+                                    recordDetail.vendor_name = `供应商${model.vendor_id}`;
+                                })
+                            );
+                        }
+
+                        await Promise.all(subPromises);
                     }).catch(() => {
                         recordDetail.model_name = `模型${record.model_id}`;
                     })

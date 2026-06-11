@@ -32,6 +32,9 @@
                         {{ formatDate(record.created_at) }}
                     </template>
                     <template v-if="column.key === 'action'">
+                        <a-button type="link" size="small" @click="handleTest(record)">
+                            测试
+                        </a-button>
                         <a-button type="link" danger size="small" @click="handleDelete(record)">
                             删除
                         </a-button>
@@ -39,6 +42,8 @@
                 </template>
             </a-table>
         </a-card>
+
+        <DialogTest ref="testDialogRef" />
 
         <!-- 手动添加模型弹窗 -->
         <a-modal
@@ -112,14 +117,17 @@ import { Modal } from 'ant-design-vue/es';
 import { getVendor, listVendorModels, fetchVendorModels, syncVendorModels, addVendorModel, deleteVendorModel } from '@/api/vendor';
 import { formatDate } from '@/utils/format';
 import { notifyRequestError, notifySuccess } from '@/utils/requestFeedback';
-import type { VendorModel } from '@/types/vendor';
+import type { Vendor, VendorModel } from '@/types/vendor';
+import DialogTest from './DialogTest.vue';
 
 const route = useRoute();
 const router = useRouter();
 
 const vendorId = Number(route.params.id);
+const currentVendor = ref<Vendor | null>(null);
 const vendorName = ref('');
 const models = ref<VendorModel[]>([]);
+const testDialogRef = ref<InstanceType<typeof DialogTest>>();
 const listLoading = ref(false);
 const fetchLoading = ref(false);
 const syncLoading = ref(false);
@@ -142,7 +150,7 @@ const filteredModels = computed(() =>
 const columns: TableColumnsType<VendorModel> = [
     { title: 'Model ID', key: 'model_id', dataIndex: 'model_id' },
     { title: '添加时间', key: 'created_at', dataIndex: 'created_at', width: 180 },
-    { title: '操作', key: 'action', width: 80, fixed: 'right' as const },
+    { title: '操作', key: 'action', width: 120, fixed: 'right' as const },
 ];
 
 onMounted(async () => {
@@ -152,10 +160,19 @@ onMounted(async () => {
 async function loadVendorName() {
     try {
         const vendor = await getVendor(vendorId);
+        currentVendor.value = vendor;
         vendorName.value = vendor.name;
     } catch {
         vendorName.value = `供应商 ${vendorId}`;
     }
+}
+
+function handleTest(record: VendorModel) {
+    if (!currentVendor.value) return;
+    testDialogRef.value?.open(currentVendor.value, record.model_id, {
+        modelName: record.model_id,
+        vendorModelName: null,
+    });
 }
 
 async function loadModels() {
