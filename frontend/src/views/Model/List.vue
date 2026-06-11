@@ -43,7 +43,7 @@
             :pagination="pagination"
             @change="handleTableChange"
             :row-key="(record: Model) => record.id"
-            :scroll="{ x: 1100 }"
+            :scroll="{ x: 'max-content' }"
         >
             <template #headerCell="{ column }">
                 <template v-if="column.key === 'price'">
@@ -147,7 +147,7 @@ const vendorModelsMap = ref<Map<number, string>>(new Map());
 
 const columns: TableColumnsType<Model> = [
     { title: 'ID', key: 'id', dataIndex: 'id', width: 80 },
-    { title: '模型名称', key: 'name', dataIndex: 'name', width: 150 },
+    { title: '模型名称', key: 'name', dataIndex: 'name' },
     { title: '供应商', key: 'vendor_id', dataIndex: 'vendor_id', width: 150 },
     { title: '供应商模型', key: 'vendor_model_id', dataIndex: 'vendor_model_id', width: 200 },
     { title: '状态', key: 'enable', dataIndex: 'enable', width: 100 },
