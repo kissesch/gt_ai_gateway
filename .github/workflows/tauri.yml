@@ -46,27 +46,35 @@ jobs:
       - name: Build backend sidecar
         run: npm run tauri:build-backend
 
-      - name: Build Tauri App
+      - name: Install Apple Certificate
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+
+      - name: Build Tauri App (Unsigned)
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        with:
+          projectPath: './tauri'
+          args: '--target aarch64-apple-darwin'
+
+      - name: Manual Code Sign and Notarization
+        env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        with:
-          projectPath: './tauri'
-          args: '--target aarch64-apple-darwin'
+        run: |
+          cd tauri/scripts
+          python3 build_release.py
 
       - name: Upload macOS Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macOS-app
-          path: |
-            tauri/build/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
-            tauri/build/target/aarch64-apple-darwin/release/bundle/macos/*.app
+          path: tauri/build/target/aarch64-apple-darwin/release/bundle/signed_dmg/*.dmg
           if-no-files-found: warn
 
   create-release:
