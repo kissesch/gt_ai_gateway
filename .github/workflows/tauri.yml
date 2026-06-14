@@ -13,13 +13,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
           token: ${{ secrets.PAT_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: 'npm'
@@ -77,7 +77,7 @@ jobs:
           python3 build_release.py
 
       - name: Upload macOS Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macOS-app
           path: tauri/build/target/aarch64-apple-darwin/release/bundle/signed_dmg/*.dmg
@@ -94,7 +94,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check version tag
         id: version_tag
@@ -110,7 +110,7 @@ jobs:
 
       - name: Download macOS artifacts
         if: steps.version_tag.outputs.matched == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: macOS-app
           path: release-artifacts
