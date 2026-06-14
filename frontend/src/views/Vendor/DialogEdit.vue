@@ -13,7 +13,7 @@
             layout="vertical"
             ref="formRef"
         >
-            <a-form-item label="类型" name="type">
+            <a-form-item label="类型" name="type" tooltip="可以直接选择已经存在的供应商，输入 token即可，通常不需要修改 url；如果是不在内置列表中，则需要自己添加 token 和 url">
                 <a-select
                     v-model:value="formState.type"
                     placeholder="请选择供应商类型"
