@@ -196,12 +196,14 @@ describe("AI Protocol Conversion API", () => {
         expect(record.model_id).toBe(anthropicClientModelId);
         expect(record.status).toBe("success");
         const usageB = JSON.parse(record.usage);
-        expect(usageB.prompt_tokens).toBeGreaterThan(0);
-        expect(usageB.completion_tokens).toBeGreaterThan(0);
 
         const responseData = JSON.parse(record.response_data);
         expect(responseData.choices[0].message.role).toBe("assistant");
         expect(responseData.choices[0].message.content).toContain("mock AI assistant");
         expect(responseData.usage.prompt_tokens).toBeGreaterThan(0);
+        expect(responseData.usage.completion_tokens).toBeGreaterThan(0);
+        expect(usageB.prompt_tokens).toBe(responseData.usage.prompt_tokens);
+        expect(usageB.completion_tokens).toBe(responseData.usage.completion_tokens);
+        expect(usageB.cache_read_tokens).toBe(responseData.usage.cache_read_tokens);
     }, 30000);
 });

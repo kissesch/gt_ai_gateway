@@ -279,15 +279,16 @@ async function handleStreamResponse(
         if (streamCompleted) {
             // 流结束，保存完整响应到数据库
             const fullResponse = accumulator.getResponse();
-            const normalizedUsage = normalizeUsage(format, fullResponse.usage);
-            const cost = normalizedUsage
-                ? calculateCost(model, normalizedUsage.promptTokens, normalizedUsage.outputTokens, normalizedUsage.cacheReadTokens)
-                : 0;
+            const usage = fullResponse.usage;
+            const promptTokens = usage?.prompt_tokens ?? 0;
+            const outputTokens = usage?.completion_tokens ?? 0;
+            const cacheReadTokens = usage?.cache_read_tokens ?? 0;
+            const cost = calculateCost(model, promptTokens + cacheReadTokens, outputTokens, cacheReadTokens);
 
             await recordService.update(record.id, {
                 response_data: JSON.stringify(fullResponse),
                 status: SgRecordStatus.SUCCESS,
-                usage: normalizedUsage ? JSON.stringify(normalizedUsage.recordUsage) : null,
+                usage: usage ? JSON.stringify(usage) : null,
                 first_token_latency: firstTokenTime !== null
                     ? firstTokenTime - record.created_at.getTime()
                     : null,
