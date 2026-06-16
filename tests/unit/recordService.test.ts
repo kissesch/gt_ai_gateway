@@ -2,10 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import recordService from "../../src/service/recordService";
 import { SgRecord } from "../../src/model/sgRecord";
 
-// Mock SgRecord
-vi.mock("../../src/model/sgRecord", () => ({
-    SgRecord: {
-        query: vi.fn(() => ({
+
+describe("recordService", () => {
+    const originalEnv = process.env;
+    const originalConsoleLog = console.log;
+
+    beforeEach(() => {
+        process.env = { ...originalEnv };
+        console.log = vi.fn();
+
+        vi.spyOn(SgRecord, "query").mockReturnValue({
             create: vi.fn((data) => Promise.resolve({ id: 1, ...data })),
             where: vi.fn(() => ({
                 update: vi.fn((data) => Promise.resolve([1])),
@@ -15,17 +21,7 @@ vi.mock("../../src/model/sgRecord", () => ({
                     get: vi.fn(() => Promise.resolve([])),
                 })),
             })),
-        })),
-    },
-}));
-
-describe("recordService", () => {
-    const originalEnv = process.env;
-    const originalConsoleLog = console.log;
-
-    beforeEach(() => {
-        process.env = { ...originalEnv };
-        console.log = vi.fn();
+        } as any);
     });
 
     afterEach(() => {
