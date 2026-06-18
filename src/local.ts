@@ -13,6 +13,24 @@ config({ path: join(process.cwd(), ".dev.vars"), override: false });
 
 const DB_PATH = process.env.DB_PATH || join(process.cwd(), "local.db");
 
+// 在桌面版下，Tauri 进程会将自己的 stdin 管道连到这里。
+// 一旦 Tauri 父进程异常退出，管道断开，我们通过监听 stdin 可以及时自动清理，避免产生孤儿进程。
+if (process.env.DESKTOP_MODE === "1") {
+    process.stdin.resume();
+    process.stdin.on("end", () => {
+        console.log("Stdin ended, parent process probably died. Exiting...");
+        process.exit(0);
+    });
+    process.stdin.on("error", () => {
+        console.log("Stdin error, parent process probably died. Exiting...");
+        process.exit(0);
+    });
+    process.stdin.on("close", () => {
+        console.log("Stdin closed, parent process probably died. Exiting...");
+        process.exit(0);
+    });
+}
+
 function formatConsoleArg(arg: unknown): string {
     if (arg instanceof Error) {
         return arg.stack || arg.message;
