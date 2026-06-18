@@ -50,6 +50,31 @@
 - 虽然当前页面显示主要取后端版本，但前端包本身也应保持一致
 - 避免后续构建、排查、制品追踪时出现版本不一致
 
+### 3. Tauri 桌面端版本号
+
+文件：
+
+- `tauri/package.json`
+- `tauri/src-tauri/tauri.conf.json`
+- `tauri/src-tauri/Cargo.toml`
+
+JSON 文件中需要修改为同一个目标版本，例如：
+
+```json
+"version": "1.3.3"
+```
+
+对于 `Cargo.toml`：
+
+```toml
+version = "1.3.3"
+```
+
+说明：
+
+- Tauri 桌面端程序的版本号必须与前后端版本号保持一致
+- 如果版本号不统一，CI 流程中的 `Verify Version Consistency` 校验步骤将会失败，从而阻止发布
+
 ## 建议发布前检查
 
 发布前至少执行以下检查：
@@ -90,6 +115,9 @@ TEST_REAL_API=true npx vitest run tests/api/stats/stats.test.ts --config vitest.
 - `package-lock.json`
 - `frontend/package.json`
 - `frontend/package-lock.json`
+- `tauri/package.json`
+- `tauri/src-tauri/tauri.conf.json`
+- `tauri/src-tauri/Cargo.toml`
 
 ### 2. 执行验证
 
@@ -118,7 +146,7 @@ git status --short
 示例：
 
 ```bash
-git add package.json package-lock.json frontend/package.json frontend/package-lock.json
+git add package.json package-lock.json frontend/package.json frontend/package-lock.json tauri/package.json tauri/src-tauri/tauri.conf.json tauri/src-tauri/Cargo.toml
 ```
 
 如果本次还包含功能改动或 UI 修复，则把对应源码文件一起加入。
