@@ -2,17 +2,21 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import clientConfigService from "../../src/service/clientConfigService";
+import clientConfigService from "../../src/service/clientConfigService/core";
+import ormService from "../../src/service/ormService";
 
 
 describe("clientConfigService", () => {
     let tempDir = "";
     let originalHome: string | undefined;
     let originalCodexHome: string | undefined;
+    let originalOrmMode: "worker" | "node";
 
     beforeEach(async () => {
         originalHome = process.env.HOME;
         originalCodexHome = process.env.CODEX_HOME;
+        originalOrmMode = ormService.mode;
+        ormService.mode = "node";
         tempDir = await mkdtemp(join(tmpdir(), "gt-client-config-"));
         process.env.HOME = tempDir;
         process.env.CODEX_HOME = join(tempDir, ".codex");
@@ -23,7 +27,18 @@ describe("clientConfigService", () => {
     afterEach(async () => {
         process.env.HOME = originalHome;
         process.env.CODEX_HOME = originalCodexHome;
+        ormService.mode = originalOrmMode;
         await rm(tempDir, { recursive: true, force: true });
+    });
+
+    it("reports unavailable in worker mode", async () => {
+        ormService.mode = "worker";
+
+        const status = await clientConfigService.getStatus();
+
+        expect(status.available).toBe(false);
+        expect(status.clients).toEqual([]);
+        expect(status.reason).toContain("本地安装");
     });
 
     it("writes and restores Claude Code settings", async () => {

@@ -6,14 +6,23 @@
         </div>
 
         <a-spin :spinning="loading">
-            <div class="toolbar">
+            <a-alert
+                v-if="!available"
+                type="warning"
+                show-icon
+                message="客户端管理不可用"
+                :description="unavailableReason || '请本地安装使用。'"
+                class="unavailable-alert"
+            />
+
+            <div v-if="available" class="toolbar">
                 <a-button :loading="loading" @click="loadStatus">
                     <ReloadOutlined />
                     重新检测
                 </a-button>
             </div>
 
-            <a-tabs v-model:activeKey="activeClient" class="client-tabs">
+            <a-tabs v-if="available" v-model:activeKey="activeClient" class="client-tabs">
                 <a-tab-pane v-for="client in clients" :key="client.client">
                     <template #tab>
                         <div class="tab-title">
@@ -288,6 +297,8 @@ import TokenDisplay from '@/components/common/TokenDisplay.vue';
 
 const loading = ref(false);
 const dialogLoading = ref(false);
+const available = ref(true);
+const unavailableReason = ref('');
 const savingClient = ref<ClientName | ''>('');
 const restoringClient = ref<ClientName | ''>('');
 const clients = ref<ClientConfigStatus[]>([]);
@@ -344,6 +355,8 @@ async function loadStatus(): Promise<void> {
     loading.value = true;
     try {
         const response = await getClientConfigStatus();
+        available.value = response.available;
+        unavailableReason.value = response.reason || '';
         clients.value = response.clients;
         const firstClient = response.clients[0];
         if (!activeClient.value && firstClient) {
@@ -670,6 +683,10 @@ function updateClientStatus(status: ClientConfigStatus): void {
     display: flex;
     justify-content: flex-end;
     margin-bottom: 12px;
+}
+
+.unavailable-alert {
+    max-width: 720px;
 }
 
 .client-tabs {

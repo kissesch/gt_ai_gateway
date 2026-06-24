@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import clientConfigService from "../service/clientConfigService";
+import clientConfigService from "../service/clientConfigService/core";
 
 
 async function status(c: Context) {

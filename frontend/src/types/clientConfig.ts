@@ -31,6 +31,8 @@ export interface GatewayUserInfo {
 }
 
 export interface ClientConfigStatusResponse {
+    available: boolean;
+    reason?: string;
     clients: ClientConfigStatus[];
 }
 
