@@ -20,6 +20,32 @@ class ClaudeCodeConfigAdapter extends BaseConfigAdapter {
     }
 
 
+    async parseConfigContent(configContent: Record<string, string>): Promise<CurrentClientConfig | null> {
+        const content = configContent[this.configPath] || "";
+        if (!content) {
+            return null;
+        }
+
+        const config = configAdapterUtils.parseJsonConfig(content);
+        const backendUrl = config.env?.ANTHROPIC_BASE_URL || "";
+        const token = config.env?.ANTHROPIC_AUTH_TOKEN || config.env?.ANTHROPIC_API_KEY || "";
+        if (!backendUrl || !token) {
+            return null;
+        }
+
+        const gatewayUser = await configAdapterUtils.findGatewayUserByToken(token);
+        return {
+            configPath: this.configPath,
+            connectionMode: gatewayUser ? "gateway" : "vendor",
+            backendUrl,
+            token,
+            model: config.model || "",
+            protocol: "anthropic",
+            gatewayUser,
+        };
+    }
+
+
     async getStatus(): Promise<ClientConfigStatus> {
         const installed = await this.isInstalled();
         let configured = false;
@@ -28,20 +54,8 @@ class ClaudeCodeConfigAdapter extends BaseConfigAdapter {
 
         if (installed && await configAdapterUtils.pathExists(this.fs, this.configPath)) {
             try {
-                const config = configAdapterUtils.parseJsonConfig(await this.readConfigFile());
-                const backendUrl = config.env?.ANTHROPIC_BASE_URL || "";
-                const token = config.env?.ANTHROPIC_AUTH_TOKEN || config.env?.ANTHROPIC_API_KEY || "";
-                configured = Boolean(backendUrl && token);
-                if (configured) {
-                    currentConfig = {
-                        configPath: this.configPath,
-                        backendUrl,
-                        token,
-                        model: config.model || "",
-                        protocol: "anthropic",
-                        gatewayUser: await configAdapterUtils.findGatewayUserByToken(token),
-                    };
-                }
+                currentConfig = await this.parseConfigContent({ [this.configPath]: await this.readConfigFile() });
+                configured = Boolean(currentConfig);
             } catch (error) {
                 message = `配置文件解析失败: ${String(error)}`;
             }

@@ -24,6 +24,7 @@ export interface ClientConfigStatus {
 
 export interface CurrentClientConfig {
     configPath: string;
+    connectionMode: ClientConnectionMode;
     backendUrl: string;
     token: string;
     model: string;
@@ -44,6 +45,7 @@ export interface ClientConfigBackupInfo {
     name: string;
     fileCount: number;
     createdAt: string;
+    config: CurrentClientConfig | null;
 }
 
 export interface ClientConfigStatusResponse {

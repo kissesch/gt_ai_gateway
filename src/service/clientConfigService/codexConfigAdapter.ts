@@ -25,6 +25,33 @@ class CodexConfigAdapter extends BaseConfigAdapter {
     }
 
 
+    async parseConfigContent(configContent: Record<string, string>): Promise<CurrentClientConfig | null> {
+        const content = configContent[this.configPath] || "";
+        if (!content) {
+            return null;
+        }
+
+        const provider = tomlUtil.getTomlValue(content, "model_provider") || "";
+        const providerTable = provider ? `model_providers.${provider}` : "";
+        const backendUrl = providerTable ? tomlUtil.getTomlTableValue(content, providerTable, "base_url") || "" : "";
+        const token = providerTable ? tomlUtil.getTomlTableValue(content, providerTable, "experimental_bearer_token") || "" : "";
+        if (!provider || !backendUrl || !token) {
+            return null;
+        }
+
+        const gatewayUser = await configAdapterUtils.findGatewayUserByToken(token);
+        return {
+            configPath: this.configPath,
+            connectionMode: gatewayUser ? "gateway" : "vendor",
+            backendUrl,
+            token,
+            model: tomlUtil.getTomlValue(content, "model") || "",
+            protocol: "responses",
+            gatewayUser,
+        };
+    }
+
+
     async getStatus(): Promise<ClientConfigStatus> {
         const installed = await this.isInstalled();
         let configured = false;
@@ -33,22 +60,8 @@ class CodexConfigAdapter extends BaseConfigAdapter {
 
         if (installed && await configAdapterUtils.pathExists(this.fs, this.configPath)) {
             try {
-                const content = await this.readConfigFile();
-                const provider = tomlUtil.getTomlValue(content, "model_provider") || "";
-                const providerTable = provider ? `model_providers.${provider}` : "";
-                const backendUrl = providerTable ? tomlUtil.getTomlTableValue(content, providerTable, "base_url") || "" : "";
-                const token = providerTable ? tomlUtil.getTomlTableValue(content, providerTable, "experimental_bearer_token") || "" : "";
-                configured = Boolean(provider && backendUrl && token);
-                if (configured) {
-                    currentConfig = {
-                        configPath: this.configPath,
-                        backendUrl,
-                        token,
-                        model: tomlUtil.getTomlValue(content, "model") || "",
-                        protocol: "responses",
-                        gatewayUser: await configAdapterUtils.findGatewayUserByToken(token),
-                    };
-                }
+                currentConfig = await this.parseConfigContent({ [this.configPath]: await this.readConfigFile() });
+                configured = Boolean(currentConfig);
             } catch (error) {
                 message = `配置文件读取失败: ${String(error)}`;
             }

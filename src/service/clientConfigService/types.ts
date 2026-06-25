@@ -52,6 +52,7 @@ interface ClientConfigStatus {
 
 interface CurrentClientConfig {
     configPath: string;
+    connectionMode: ConnectionMode;
     backendUrl: string;
     token: string;
     model: string;
@@ -72,6 +73,7 @@ interface ClientConfigBackupInfo {
     name: string;
     fileCount: number;
     createdAt: string;
+    config: CurrentClientConfig | null;
 }
 
 interface FileSystemApi {
@@ -94,6 +96,7 @@ interface ConfigAdapter {
 
     getStatus(): Promise<ClientConfigStatus>;
     apply(params: ApplyClientConfigParams): Promise<ClientConfigStatus>;
+    parseConfigContent(configContent: ClientConfigContent): Promise<CurrentClientConfig | null>;
     readConfigFiles(): Promise<ClientConfigContent>;
     restore(configContent: ClientConfigContent): Promise<ClientConfigStatus>;
 }

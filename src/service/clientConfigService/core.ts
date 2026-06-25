@@ -61,13 +61,14 @@ function formatBackupName(client: ClientName): string {
 }
 
 
-function toBackupInfo(record: any): ClientConfigBackupInfo {
+async function toBackupInfo(record: any, adapter: ConfigAdapter): Promise<ClientConfigBackupInfo> {
     return {
         id: Number(record.id),
         client: record.client as ClientName,
         name: record.name,
         fileCount: Object.keys(record.configContent || {}).length,
         createdAt: String(record.created_at || record.createdAt || ""),
+        config: await adapter.parseConfigContent(record.configContent || {}),
     };
 }
 
@@ -90,18 +91,18 @@ function normalizeBackupRecords(records: any): any[] {
 }
 
 
-async function getBackups(client: ClientName): Promise<ClientConfigBackupInfo[]> {
+async function getBackups(client: ClientName, adapter: ConfigAdapter): Promise<ClientConfigBackupInfo[]> {
     const records = await SgClientConfigBackup.query()
         .where("client", client)
         .orderBy("id", "desc")
         .get();
 
-    return normalizeBackupRecords(records).map(toBackupInfo);
+    return await Promise.all(normalizeBackupRecords(records).map(record => toBackupInfo(record, adapter)));
 }
 
 
-async function enrichStatus(status: ClientConfigStatus): Promise<ClientConfigStatus> {
-    const backups = await getBackups(status.client);
+async function enrichStatus(status: ClientConfigStatus, adapter: ConfigAdapter): Promise<ClientConfigStatus> {
+    const backups = await getBackups(status.client, adapter);
     return {
         ...status,
         backupExists: backups.length > 0,
@@ -122,7 +123,7 @@ async function getStatus(): Promise<ClientConfigStatusResponse> {
 
     const adapters = await getAdapters();
     const clients = await Promise.all(adapters.map(async (adapter) => {
-        return await enrichStatus(await adapter.getStatus());
+        return await enrichStatus(await adapter.getStatus(), adapter);
     }));
     return {
         available: true,
@@ -153,7 +154,7 @@ async function applyConfig(params: ApplyClientConfigParams): Promise<ClientConfi
         apiKey: params.apiKey.trim(),
         model: params.model?.trim() || "",
     });
-    return await enrichStatus(status);
+    return await enrichStatus(status, adapter);
 }
 
 
@@ -170,7 +171,7 @@ async function createBackup(params: CreateClientConfigBackupParams): Promise<Cli
         configContent,
     });
 
-    return toBackupInfo(record);
+    return await toBackupInfo(record, adapter);
 }
 
 
@@ -195,7 +196,7 @@ async function renameBackup(params: RenameClientConfigBackupParams): Promise<Cli
 
     await backup.update({ name });
     backup.name = name;
-    return toBackupInfo(backup);
+    return await toBackupInfo(backup, await getAdapter(params.client));
 }
 
 
@@ -214,7 +215,7 @@ async function restoreConfig(params: RestoreClientConfigParams): Promise<ClientC
         throw new Error("Backup not found");
     }
 
-    return await enrichStatus(await adapter.restore(backup.configContent));
+    return await enrichStatus(await adapter.restore(backup.configContent), adapter);
 }
 
 
