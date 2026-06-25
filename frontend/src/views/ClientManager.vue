@@ -166,13 +166,7 @@
                                         </div>
                                     </div>
 
-                                    <div v-if="client.backups.length === 0" class="config-row empty-config-row">
-                                        <div class="icon-placeholder"></div>
-                                        <div class="config-row-content">
-                                            <div class="config-row-name">暂无配置</div>
-                                            <span class="config-muted">暂无已保存配置</span>
-                                        </div>
-                                    </div>
+
                                 </div>
                                 <div v-if="client.message" class="client-message">{{ client.message }}</div>
                             </div>
@@ -237,26 +231,23 @@
                                         :label="`${user.name} ${getUserTypeLabel(user.type)} ${user.status}`"
                                     >
                                         <div class="select-option-row">
-                                            <span class="select-option-name">{{ user.name }}</span>
                                             <a-tag class="select-tag" :color="getUserTypeColor(user.type)">
                                                 {{ getUserTypeLabel(user.type) }}
                                             </a-tag>
-                                            <a-tag class="select-tag" :color="user.status === 'active' ? 'green' : 'default'">
-                                                {{ user.status === 'active' ? '启用' : '禁用' }}
+                                            <span class="select-option-name">{{ user.name }}</span>
+                                            <a-tag v-if="user.status !== 'active'" class="select-tag" color="red">
+                                                已禁用
                                             </a-tag>
                                         </div>
                                     </a-select-option>
                                     <template #labelRender="{ value }">
                                         <div v-if="findUser(Number(value))" class="select-option-row selected-option">
-                                            <span class="select-option-name">{{ findUser(Number(value))?.name }}</span>
                                             <a-tag class="select-tag" :color="getUserTypeColor(findUser(Number(value))?.type)">
                                                 {{ getUserTypeLabel(findUser(Number(value))?.type) }}
                                             </a-tag>
-                                            <a-tag
-                                                class="select-tag"
-                                                :color="findUser(Number(value))?.status === 'active' ? 'green' : 'default'"
-                                            >
-                                                {{ findUser(Number(value))?.status === 'active' ? '启用' : '禁用' }}
+                                            <span class="select-option-name">{{ findUser(Number(value))?.name }}</span>
+                                            <a-tag v-if="findUser(Number(value))?.status !== 'active'" class="select-tag" color="red">
+                                                已禁用
                                             </a-tag>
                                         </div>
                                     </template>
@@ -300,7 +291,6 @@
                                         :label="`${vendor.name} ${getVendorTypeLabel(vendor.type)}`"
                                     >
                                         <div class="select-option-row">
-                                            <span class="select-option-name">{{ vendor.name }}</span>
                                             <a-tag
                                                 class="select-tag"
                                                 :color="getVendorTypeColor(vendor.type)"
@@ -308,11 +298,11 @@
                                             >
                                                 {{ getVendorTypeLabel(vendor.type) }}
                                             </a-tag>
+                                            <span class="select-option-name">{{ vendor.name }}</span>
                                         </div>
                                     </a-select-option>
                                     <template #labelRender="{ value }">
                                         <div v-if="findVendor(Number(value))" class="select-option-row selected-option">
-                                            <span class="select-option-name">{{ findVendor(Number(value))?.name }}</span>
                                             <a-tag
                                                 class="select-tag"
                                                 :color="getVendorTypeColor(findVendor(Number(value))?.type)"
@@ -320,6 +310,7 @@
                                             >
                                                 {{ getVendorTypeLabel(findVendor(Number(value))?.type) }}
                                             </a-tag>
+                                            <span class="select-option-name">{{ findVendor(Number(value))?.name }}</span>
                                         </div>
                                     </template>
                                 </a-select>
@@ -373,23 +364,40 @@
                             <a-input :value="detailConfig.backendUrl" disabled />
                         </a-form-item>
                         <a-form-item label="用户">
-                            <div class="readonly-field">
-                                <a-tag v-if="detailConfig.gatewayUser" color="blue">
-                                    {{ getGatewayUserLabel(detailConfig) }}
-                                </a-tag>
-                                <span v-else class="config-muted">未匹配网关用户</span>
-                            </div>
+                            <a-select :value="detailConfig.gatewayUser?.id" disabled class="readonly-select">
+                                <a-select-option
+                                    v-for="user in users"
+                                    :key="user.id"
+                                    :value="user.id"
+                                    :label="`${user.name} ${getUserTypeLabel(user.type)} ${user.status}`"
+                                >
+                                    <div class="select-option-row">
+                                        <a-tag class="select-tag" :color="getUserTypeColor(user.type)">
+                                            {{ getUserTypeLabel(user.type) }}
+                                        </a-tag>
+                                        <span class="select-option-name">{{ user.name }}</span>
+                                        <a-tag v-if="user.status !== 'active'" class="select-tag" color="red">
+                                            已禁用
+                                        </a-tag>
+                                    </div>
+                                </a-select-option>
+                                <template #labelRender="{ value }">
+                                    <div v-if="findUser(Number(value))" class="select-option-row selected-option">
+                                        <a-tag class="select-tag" :color="getUserTypeColor(findUser(Number(value))?.type)">
+                                            {{ getUserTypeLabel(findUser(Number(value))?.type) }}
+                                        </a-tag>
+                                        <span class="select-option-name">{{ findUser(Number(value))?.name }}</span>
+                                        <a-tag v-if="findUser(Number(value))?.status !== 'active'" class="select-tag" color="red">
+                                            已禁用
+                                        </a-tag>
+                                    </div>
+                                </template>
+                            </a-select>
                         </a-form-item>
                         <a-form-item label="模型">
-                            <a-input :value="detailConfig.model" disabled />
-                        </a-form-item>
-                        <a-form-item label="Token">
-                            <div class="readonly-field">
-                                <TokenDisplay :token="detailConfig.token" />
-                            </div>
-                        </a-form-item>
-                        <a-form-item label="配置文件">
-                            <a-input :value="detailConfig.configPath" disabled />
+                            <a-select :value="detailConfig.model" disabled class="readonly-select">
+                                <a-select-option :value="detailConfig.model">{{ detailConfig.model }}</a-select-option>
+                            </a-select>
                         </a-form-item>
                     </a-tab-pane>
 
@@ -397,19 +405,43 @@
                         <a-form-item label="协议">
                             <a-input :value="getProtocolLabel(detailConfig.protocol)" disabled />
                         </a-form-item>
-                        <a-form-item label="上游地址">
-                            <a-input :value="detailConfig.backendUrl" disabled />
+                        <a-form-item label="供应商">
+                            <a-select :value="findVendorByUrl(detailConfig.backendUrl, detailConfig.protocol)?.id" disabled class="readonly-select">
+                                <a-select-option
+                                    v-for="vendor in vendors"
+                                    :key="vendor.id"
+                                    :value="vendor.id"
+                                    :label="`${vendor.name} ${getVendorTypeLabel(vendor.type)}`"
+                                >
+                                    <div class="select-option-row">
+                                        <a-tag
+                                            class="select-tag"
+                                            :color="getVendorTypeColor(vendor.type)"
+                                            :style="getVendorTypeTagStyle(vendor.type)"
+                                        >
+                                            {{ getVendorTypeLabel(vendor.type) }}
+                                        </a-tag>
+                                        <span class="select-option-name">{{ vendor.name }}</span>
+                                    </div>
+                                </a-select-option>
+                                <template #labelRender="{ value }">
+                                    <div v-if="findVendor(Number(value))" class="select-option-row selected-option">
+                                        <a-tag
+                                            class="select-tag"
+                                            :color="getVendorTypeColor(findVendor(Number(value))?.type)"
+                                            :style="getVendorTypeTagStyle(findVendor(Number(value))?.type)"
+                                        >
+                                            {{ getVendorTypeLabel(findVendor(Number(value))?.type) }}
+                                        </a-tag>
+                                        <span class="select-option-name">{{ findVendor(Number(value))?.name }}</span>
+                                    </div>
+                                </template>
+                            </a-select>
                         </a-form-item>
                         <a-form-item label="模型">
-                            <a-input :value="detailConfig.model" disabled />
-                        </a-form-item>
-                        <a-form-item label="Token">
-                            <div class="readonly-field">
-                                <TokenDisplay :token="detailConfig.token" />
-                            </div>
-                        </a-form-item>
-                        <a-form-item label="配置文件">
-                            <a-input :value="detailConfig.configPath" disabled />
+                            <a-select :value="detailConfig.model" disabled class="readonly-select">
+                                <a-select-option :value="detailConfig.model">{{ detailConfig.model }}</a-select-option>
+                            </a-select>
                         </a-form-item>
                     </a-tab-pane>
                 </a-tabs>
@@ -461,7 +493,6 @@ import type { Model } from '@/types/model';
 import { normalizeListResponse } from '@/utils/listResponse';
 import { getVendorPresetUrls, listVendorModels, listVendors } from '@/api/vendor';
 import type { Vendor, VendorModel, VendorType } from '@/types/vendor';
-import TokenDisplay from '@/components/common/TokenDisplay.vue';
 
 const loading = ref(false);
 const dialogLoading = ref(false);
@@ -777,6 +808,14 @@ function findUser(id: number): User | undefined {
     return users.value.find(user => user.id === id);
 }
 
+function findVendorByUrl(url: string, protocol: ClientProtocol): Vendor | undefined {
+    if (!url) return undefined;
+    return vendors.value.find(vendor => {
+        const vendorUrl = getVendorUrl(vendor, protocol);
+        return vendorUrl && url.startsWith(vendorUrl);
+    });
+}
+
 function findVendor(id: number): Vendor | undefined {
     return vendors.value.find(vendor => vendor.id === id);
 }
@@ -807,14 +846,6 @@ function getConnectionModeColor(mode?: ClientConnectionMode): string {
 
 function isGatewayConfig(config?: CurrentClientConfig | null): boolean {
     return config?.connectionMode === 'gateway';
-}
-
-function getGatewayUserLabel(config: CurrentClientConfig): string {
-    const user = config.gatewayUser;
-    if (!user) return '未匹配网关用户';
-    const typeLabel = getUserTypeLabel(user.type as UserType);
-    const statusLabel = user.status === 'active' ? '启用' : '禁用';
-    return `${user.name} · ${typeLabel} · ${statusLabel}`;
 }
 
 function getProtocolLabel(protocol?: ClientProtocol): string {
@@ -874,7 +905,8 @@ function getCurrentConfigName(client: ClientConfigStatus): string {
     return client.currentConfig?.model || `${client.displayName} 配置`;
 }
 
-function openDetailDialog(client: ClientConfigStatus, config: CurrentClientConfig | null, name: string): void {
+async function openDetailDialog(client: ClientConfigStatus, config: CurrentClientConfig | null, name: string): Promise<void> {
+    await loadDialogOptions();
     detailClientName.value = client.displayName;
     detailConfigName.value = name;
     detailConfig.value = config;
