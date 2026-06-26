@@ -635,14 +635,14 @@ async function openConfigDialog(client: ClientConfigStatus): Promise<void> {
 function getDefaultGatewayUrl(): string {
     const baseUrl = getBaseURL();
     if (/^https?:\/\//.test(baseUrl)) {
-        return baseUrl.replace(/\/+$/, '');
+        return baseUrl.replace(/\/+$/, '').replace('://localhost', '://127.0.0.1');
     }
 
     if (baseUrl === '/api' && import.meta.env.DEV) {
-        return 'http://localhost:8720';
+        return 'http://127.0.0.1:8720';
     }
 
-    return window.location.origin;
+    return window.location.origin.replace('://localhost', '://127.0.0.1');
 }
 
 async function loadDialogOptions(): Promise<void> {
