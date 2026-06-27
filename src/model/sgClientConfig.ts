@@ -1,6 +1,6 @@
 import { Model } from "sutando";
 import { inspect, InspectOptions } from "util";
-import { ClientName, ConnectionMode, ApiFormat } from "../constants";
+import { ClientName, ConnectionMode } from "../constants";
 
 interface ClientConfigFields {
     connectionMode?: ConnectionMode;
@@ -38,4 +38,4 @@ class SgClientConfig extends Model {
 
 
 export default SgClientConfig;
-export type { ClientConfigContent, ClientConfigFields, ConnectionMode, ApiFormat };
+export type { ClientConfigContent, ClientConfigFields, ConnectionMode };
