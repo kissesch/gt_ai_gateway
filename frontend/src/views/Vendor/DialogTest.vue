@@ -116,24 +116,25 @@
                     </a-space>
                 </div>
 
-                <div v-if="result.request_headers || result.request_body" class="result-detail">
-                    <div class="detail-label">
-                        请求原文:
-                        <a-button
-                            type="link"
-                            size="small"
-                            class="copy-btn"
-                            @click="copyRequestText"
-                        >
-                            <CopyOutlined /> 复制
-                        </a-button>
-                    </div>
-                    <pre class="request-body">{{ formattedRequest }}</pre>
-                </div>
-
                 <div class="result-detail">
-                    <div class="detail-label">响应详情:</div>
-                    <pre class="response-body">{{ formattedResponse }}</pre>
+                    <a-tabs v-model:activeKey="activeTab" size="small">
+                        <a-tab-pane key="response" tab="响应">
+                            <pre class="response-body">{{ formattedResponse }}</pre>
+                        </a-tab-pane>
+                        <a-tab-pane v-if="result.request_headers || result.request_body" key="request" tab="请求">
+                            <div class="tab-action">
+                                <a-button
+                                    type="link"
+                                    size="small"
+                                    class="copy-btn"
+                                    @click="copyRequestText"
+                                >
+                                    <CopyOutlined /> 复制
+                                </a-button>
+                            </div>
+                            <pre class="request-body">{{ formattedRequest }}</pre>
+                        </a-tab-pane>
+                    </a-tabs>
                 </div>
             </div>
         </div>
@@ -167,6 +168,7 @@ const result = ref<VendorTestResponse | null>(null);
 const currentVendor = ref<Vendor | null>(null);
 const modelInfo = ref<ModelInfo | null>(null);
 const useAutoConvert = ref(false);
+const activeTab = ref('response');
 
 const mergedUrls = computed(() => {
     if (!currentVendor.value) return {};
@@ -313,6 +315,7 @@ function open(vendor: Vendor, defaultModel?: string, info?: ModelInfo) {
     testModel.value = defaultModel ?? '';
     searchValue.value = '';
     useAutoConvert.value = false;
+    activeTab.value = 'response';
 
     const af = info?.allowedFormats;
     if (af?.length) {
@@ -560,8 +563,13 @@ defineExpose({ open });
     word-break: break-all;
 }
 
+.tab-action {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+}
+
 .copy-btn {
-    float: right;
     padding: 0;
     height: auto;
     font-size: 12px;
