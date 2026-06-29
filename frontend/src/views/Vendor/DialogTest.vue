@@ -574,4 +574,33 @@ defineExpose({ open });
     height: auto;
     font-size: 12px;
 }
+
+.response-body::-webkit-scrollbar,
+.request-body::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.response-body::-webkit-scrollbar-track,
+.request-body::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 4px;
+}
+
+.response-body::-webkit-scrollbar-thumb,
+.request-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.response-body::-webkit-scrollbar-thumb:hover,
+.request-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.response-body,
+.request-body {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.02);
+}
 </style>

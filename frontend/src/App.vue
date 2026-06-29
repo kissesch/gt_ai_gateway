@@ -188,35 +188,35 @@ html.dark body {
     color: var(--accent-primary);
 }
 
-.app-container,
-.app-container * {
+body,
+body * {
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
-.app-container ::-webkit-scrollbar {
+body ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
 }
 
-.app-container ::-webkit-scrollbar-track {
+body ::-webkit-scrollbar-track {
     background: var(--scrollbar-track);
 }
 
-.app-container ::-webkit-scrollbar-thumb {
+body ::-webkit-scrollbar-thumb {
     background: var(--scrollbar-thumb);
     border-radius: 999px;
     border: 2px solid transparent;
     background-clip: padding-box;
 }
 
-.app-container ::-webkit-scrollbar-thumb:hover {
+body ::-webkit-scrollbar-thumb:hover {
     background: var(--scrollbar-thumb-hover);
     border: 2px solid transparent;
     background-clip: padding-box;
 }
 
-.app-container ::-webkit-scrollbar-corner {
+body ::-webkit-scrollbar-corner {
     background: transparent;
 }
 
