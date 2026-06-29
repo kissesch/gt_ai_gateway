@@ -1,6 +1,6 @@
 {
     "productName": "GT AI Gateway",
-    "version": "1.7.1",
+    "version": "1.7.2",
     "identifier": "com.gtcoder.aigateway",
     "build": {
         "frontendDist": "../../frontend/dist",
