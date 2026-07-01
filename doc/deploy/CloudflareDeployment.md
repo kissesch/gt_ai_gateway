@@ -4,32 +4,47 @@
 
 ---
 
-## 方案一：一键自动化部署 (推荐)
+## 方案一：GitHub Actions 自动化部署 (推荐)
 
-最适合没有开发环境的普通用户。通过 Cloudflare 原生的 Deploy to Cloudflare 流程，云端全自动为您完成 D1 数据库创建、表结构初始化、环境变量注入以及代码发布，**完全不需要本地环境！**
+为了保证您未来能够无损、顺畅地获取项目更新，我们强烈建议您通过 GitHub Actions 进行自动化部署。此方案会自动为您完成 D1 数据库创建、表结构初始化以及代码发布。
 
-1. **点击一键部署**：
-   在项目的 README 页面，点击下面这个按钮：
-   [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/alexazhou/gt_ai_gateway)
+### 第一步：Fork 本项目
+请先点击页面右上角的 **Fork** 按钮，将本项目克隆到您自己的 GitHub 账号下。**这是后续能够享受一键自动升级的前提条件！**
 
-2. **授权并选择资源**：
-   - 网页会引导您授权 GitHub 账号，自动将代码 Fork 到您的名下。
-   - 按照网页提示选择 Cloudflare 账号、Worker 名称和 D1 数据库名称。
+### 第二步：获取 Cloudflare 部署凭证
+您需要准备两个 Cloudflare 凭证，以便 GitHub Actions 能够替您自动部署：
+1. **Account ID**：
+   - 登录 [Cloudflare 控制台](https://dash.cloudflare.com/)，在左侧菜单点击 `Workers & Pages` -> `Overview`。
+   - 在右侧边栏找到 `Account ID` 并复制。
+2. **API Token**：
+   - 在控制台右上角点击您的头像 -> `My Profile` -> `API Tokens`。
+   - 点击 `Create Token`，选择下方的 `Create Custom Token`。
+   - 配置权限如下：
+     - `Account` | `D1` | `Edit`
+     - `Account` | `Worker Scripts` | `Edit`
+   - 继续到下一步并生成 Token，**请妥善复制保存此 Token**（它只显示一次）。
 
-3. **等待自动化部署**：
-   - 点击部署后，系统会自动进入 Cloudflare 的原生 CI/CD 构建流程。
-   - Cloudflare 会根据 `wrangler.toml` 自动创建并绑定 D1 数据库，部署命令会使用 `npm run deploy` 初始化表结构、配置 ROOT_TOKEN 并发布代码，全程约 2 分钟。
+### 第三步：配置 GitHub Secrets
+回到您刚才 Fork 的 GitHub 仓库页面：
+1. 点击顶部的 `Settings` -> 左侧菜单的 `Secrets and variables` -> `Actions`。
+2. 点击 `New repository secret`，添加以下两个 Secret：
+   - Name: `CLOUDFLARE_ACCOUNT_ID`，Value 填入您刚才复制的 Account ID。
+   - Name: `CLOUDFLARE_API_TOKEN`，Value 填入您刚才生成的 API Token。
 
-4. **获取超级管理员密码并登录**：
-   - 部署完成后，点开 Cloudflare 页面的 **Deploy Log (部署日志)**，在最后的构建步骤中，您会看到自动生成的 **ROOT_TOKEN 密码** 以及应用的 **访问链接**。
-   - 请妥善保存密码！打开链接，输入密码即可进入管理后台。
+### 第四步：触发自动部署
+1. 点击仓库顶部的 `Actions` 标签页。
+2. 在左侧列表中选择 `Deploy to Cloudflare` 工作流。
+3. 如果看到 "Workflows aren’t being run on this forked repository"，请点击绿色的 `I understand my workflows, go ahead and enable them` 按钮。
+4. 点击右侧的 `Run workflow` 按钮并确认执行。
+5. 脚本会自动完成 D1 数据库绑定和代码发布（约耗时 1~2 分钟）。
+6. **获取超级管理员密码**：点开执行成功的 Action 详情，展开 `Deploy` 步骤，在日志末尾您会看到自动生成的 **ROOT_TOKEN 密码** 以及应用的 **访问链接**。
 
-### 后续无损更新（热升级）
+### 后续无损更新（一键热升级）
 
-未来当本开源项目发布了新版本时，您**无需重新配置**：
+未来当本开源项目发布了新版本时，您**只需一步操作**即可完成升级：
 1. 登录您的 GitHub，进入您 Fork 的仓库。
 2. 点击页面上方的 **Sync fork -> Update branch** 按钮。
-3. Cloudflare 会监听到代码变更并自动触发部署流程，智能保留您的 D1 数据库和原有数据，实现无损升级！
+3. 同步完成后，由于您仓库的代码发生了变化（`push` 到 `master`），GitHub Actions 会**自动触发**部署流程，智能保留您的 D1 数据库并热更最新代码，实现无损升级！
 
 ---
 
