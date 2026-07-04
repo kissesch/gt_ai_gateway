@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
-import { existsSync, unlinkSync, readFileSync, mkdirSync, rmSync } from "fs";
+import { existsSync, unlinkSync, readFileSync, mkdirSync, rmSync, readdirSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
 import initLogger, { Logger, resetLogger, getLogger } from "../../src/util/logger";
 
@@ -191,5 +191,78 @@ describe("Logger", () => {
         const logger2 = initLogger(testLogDir, true);
 
         expect(logger1).not.toBe(logger2);
+    });
+
+    describe("日志轮转", () => {
+        const rotateLogDir = join(process.cwd(), "test-log-rotate");
+        const today = new Date().toISOString().split("T")[0];
+        const activeFileName = `app-${today}.log`;
+
+        afterEach(() => {
+            if (existsSync(rotateLogDir)) {
+                rmSync(rotateLogDir, { recursive: true, force: true });
+            }
+            resetLogger();
+        });
+
+        it("超过 maxFileSize 时应轮转为 app-DATE.N.log 并新建空活动文件", () => {
+            const logger = new Logger(rotateLogDir, true, {
+                maxFileSize: 200,
+                maxFileCount: 5,
+            });
+
+            const activePath = join(rotateLogDir, activeFileName);
+            // 写入足够多内容触发轮转（每条 > 50 字节，200 字节上限下几条即触发）
+            for (let i = 0; i < 10; i++) {
+                logger.info(`rotation test line ${i} with some padding content`);
+            }
+
+            const files = readdirSync(rotateLogDir);
+            // 应存在至少一个轮转文件 app-DATE.1.log
+            expect(files.some((f) => new RegExp(`^app-${today}\\.1\\.log$`).test(f))).toBe(true);
+            // 活动文件仍存在
+            expect(files).toContain(activeFileName);
+            // 活动文件大小应小于上限
+            expect(statSync(activePath).size).toBeLessThan(200);
+        });
+
+        it("应只保留 maxFileCount 个文件，删除最旧的", () => {
+            // 预置几个旧文件，确保轮转后总数不超过 maxFileCount
+            mkdirSync(rotateLogDir, { recursive: true });
+            const oldFiles = [
+                `app-2020-01-01.log`,
+                `app-2020-01-02.log`,
+                `app-2020-01-03.log`,
+                `app-2020-01-04.log`,
+            ];
+            for (const name of oldFiles) {
+                writeFileSync(join(rotateLogDir, name), "old\n");
+            }
+
+            const logger = new Logger(rotateLogDir, true, {
+                maxFileSize: 100,
+                maxFileCount: 5,
+            });
+
+            // 触发一次轮转，会清理超出 5 个的最旧文件
+            for (let i = 0; i < 10; i++) {
+                logger.info(`prune test line ${i} padding content here`);
+            }
+
+            const files = readdirSync(rotateLogDir).filter((f) => /^app-.*\.log$/.test(f));
+            expect(files.length).toBeLessThanOrEqual(5);
+        });
+
+        it("未达上限时不应轮转", () => {
+            const logger = new Logger(rotateLogDir, true, {
+                maxFileSize: 1024 * 1024,
+                maxFileCount: 5,
+            });
+
+            logger.info("small log line");
+
+            const files = readdirSync(rotateLogDir);
+            expect(files).toEqual([activeFileName]);
+        });
     });
 });
