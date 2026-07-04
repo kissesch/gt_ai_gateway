@@ -1,10 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import requestHelper from "./requestHelper";
-import config from "../config";
 
 const STREAM_LOG_DIR = join(process.cwd(), "log", "stream");
-const RESOURCE_DIR = join(process.cwd(), "tests", "resource", "stream_logs");
 
 
 /**
@@ -50,32 +48,6 @@ async function waitForRequestLog(recordId: number): Promise<string> {
     throw new Error(`Request log not found for record ${recordId}: ${logPath}`);
 }
 
-async function moveStreamLogToResource(
-    recordId: number,
-    targetFileName: string,
-): Promise<{ targetPath: string; content: string }> {
-    const sourcePath = await waitForStreamLog(recordId);
-    const sourceContent = readFileSync(sourcePath, "utf-8");
-
-    if (!existsSync(RESOURCE_DIR)) {
-        mkdirSync(RESOURCE_DIR, { recursive: true });
-    }
-
-    const targetPath = join(RESOURCE_DIR, targetFileName);
-    if (existsSync(targetPath)) {
-        rmSync(targetPath);
-    }
-
-    const normalizedContent = normalizeStreamLog(sourceContent, targetFileName);
-    writeFileSync(targetPath, normalizedContent, "utf-8");
-    rmSync(sourcePath);
-
-    return {
-        targetPath,
-        content: normalizedContent,
-    };
-}
-
 
 async function readStreamLog(recordId: number): Promise<string> {
     const sourcePath = await waitForStreamLog(recordId);
@@ -89,26 +61,8 @@ async function readRequestLog(recordId: number): Promise<string> {
 }
 
 
-function normalizeStreamLog(content: string, targetFileName: string): string {
-    if (targetFileName.includes("openai")) {
-        const parts = content.split("data: [DONE]");
-        const lastPart = parts[parts.length - 2] ?? parts[0] ?? "";
-        return `${lastPart.trim()}\n\ndata: [DONE]\n`;
-    }
-
-    if (targetFileName.includes("anthropic")) {
-        const marker = "event: message_start";
-        const parts = content.split(marker).filter(Boolean);
-        const lastPart = parts[parts.length - 1] ?? "";
-        return `${marker}\n${lastPart.trim()}\n`;
-    }
-
-    return content;
-}
-
 export default {
     enableStreamLog,
-    moveStreamLogToResource,
     readRequestLog,
     readStreamLog,
 };

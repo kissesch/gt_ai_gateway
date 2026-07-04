@@ -27,9 +27,9 @@ describe("AI Messages API (Anthropic)", () => {
 
         adminToken = await setupAdminUser();
 
-        // Enable stream log writing (DB config) when the env var gate is set,
-        // so the stream-log verification block below can read the log files.
-        if (config.TEST_MODE === "node" && process.env.STREAM_LOG_ENABLED === "true") {
+        // Stream logs are only written in node mode; enable the DB config so the
+        // stream-log verification block below can read the log files.
+        if (config.TEST_MODE === "node") {
             await streamLogHelper.enableStreamLog(adminToken);
         }
 
@@ -272,15 +272,9 @@ describe("AI Messages API (Anthropic)", () => {
                 unit: "celsius",
             });
 
-            // Stream log only available in node mode and when enabled
-            if (config.TEST_MODE === "node" && process.env.STREAM_LOG_ENABLED === "true") {
-                const { targetPath, content: streamLog } =
-                    await streamLogHelper.moveStreamLogToResource(
-                        latestRecord.id,
-                        "anthropic-tool-use-stream-test.log",
-                    );
-
-                expect(targetPath.endsWith("tests/resource/stream_logs/anthropic-tool-use-stream-test.log")).toBe(true);
+            // Stream log only written in node mode
+            if (config.TEST_MODE === "node") {
+                const streamLog = await streamLogHelper.readStreamLog(latestRecord.id);
                 expect(streamLog).toContain("\"tool_use\"");
                 expect(streamLog).toContain("\"input_json_delta\"");
                 expect(streamLog).toContain("\"stop_reason\":\"tool_use\"");

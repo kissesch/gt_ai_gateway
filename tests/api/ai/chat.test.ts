@@ -30,9 +30,9 @@ describe("AI Chat API", () => {
 
         adminToken = await setupAdminUser();
 
-        // Enable stream log writing (DB config) when the env var gate is set,
-        // so the stream-log verification block below can read the log files.
-        if (config.TEST_MODE === "node" && process.env.STREAM_LOG_ENABLED === "true") {
+        // Stream logs are only written in node mode; enable the DB config so the
+        // stream-log verification block below can read the log files.
+        if (config.TEST_MODE === "node") {
             await streamLogHelper.enableStreamLog(adminToken);
         }
 
@@ -268,15 +268,9 @@ describe("AI Chat API", () => {
                 "{\"city\":\"San Francisco\",\"unit\":\"celsius\"}",
             );
 
-            // Stream log only available in node mode and when enabled
-            if (config.TEST_MODE === "node" && process.env.STREAM_LOG_ENABLED === "true") {
-                const { targetPath, content: streamLog } =
-                    await streamLogHelper.moveStreamLogToResource(
-                        latestRecord.id,
-                        "openai-tool-call-stream-test.log",
-                    );
-
-                expect(targetPath.endsWith("tests/resource/stream_logs/openai-tool-call-stream-test.log")).toBe(true);
+            // Stream log only written in node mode
+            if (config.TEST_MODE === "node") {
+                const streamLog = await streamLogHelper.readStreamLog(latestRecord.id);
                 expect(streamLog).toContain("\"tool_calls\"");
                 expect(streamLog).toContain("\"get_weather\"");
                 expect(streamLog).toContain("\"finish_reason\":\"tool_calls\"");
