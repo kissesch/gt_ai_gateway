@@ -6,6 +6,8 @@ import type {
     OpenAIResponse,
     OpenAIMessage,
     OpenAITool,
+    AnthropicContentBlock,
+    AnthropicSSEEvent,
     OpenAIChunk,
     ProtocolStreamEvent,
 } from "./protocolTypes";
@@ -14,16 +16,20 @@ import {
     thinkingConfigToOpenAI,
 } from "./thinkingConfig";
 
-const ANTHROPIC_TO_OPENAI_STOP_REASON: Record<string, string> = {
-    end_turn: "stop",
-    max_tokens: "length",
-    tool_use: "tool_calls",
-    stop_sequence: "stop",
+const OPENAI_TO_ANTHROPIC_STOP_REASON: Record<string, string> = {
+    stop: "end_turn",
+    length: "max_tokens",
+    tool_calls: "tool_use",
+    content_filter: "end_turn",
 };
 
 export class AnthropicToOpenAIConverter extends BaseConverter {
-    private currentToolCallIndex = -1;
-    private inputTokens = 0;
+    private sentFirstChunk = false;
+    private hasYieldedThinking = false;
+    private currentToolCallId = "";
+    private isFirstChunk = true;
+    private pendingStopReason: string | null = null;
+
 
     public convertRequest(clientReq: AnthropicRequest): OpenAIRequest {
         const messages: OpenAIRequest["messages"] = [];
@@ -147,232 +153,282 @@ export class AnthropicToOpenAIConverter extends BaseConverter {
         return openaiReq;
     }
 
-    public convertResponse(upstreamRes: AnthropicResponse, requestId?: string): OpenAIResponse {
-        let textContent = "";
-        let reasoningContent: string | undefined = undefined;
-        let toolCalls: OpenAIMessage["tool_calls"] = undefined;
 
-        for (const block of upstreamRes.content) {
-            if (block.type === "text") {
-                textContent += block.text;
-            } else if (block.type === "thinking") {
-                reasoningContent = (reasoningContent || "") + block.thinking;
-            } else if (block.type === "tool_use") {
-                if (!toolCalls) toolCalls = [];
-                toolCalls.push({
-                    id: block.id || `call_${Date.now()}`,
-                    type: "function",
-                    function: {
-                        name: block.name || "",
-                        arguments: JSON.stringify(block.input || {}),
-                    },
+    public convertResponse(upstreamRes: OpenAIResponse, requestId?: string): AnthropicResponse {
+        const message = upstreamRes.choices[0]?.message;
+        const contentBlocks: AnthropicContentBlock[] = [];
+
+        if (message?.reasoning_content) {
+            contentBlocks.push({
+                type: "thinking",
+                thinking: message.reasoning_content,
+            });
+        }
+
+        if (message?.content) {
+            contentBlocks.push({ type: "text", text: message.content });
+        }
+
+        if (message?.tool_calls) {
+            for (const tc of message.tool_calls) {
+                let inputObj: Record<string, unknown> = {};
+                try {
+                    inputObj = JSON.parse(tc.function.arguments);
+                } catch {
+                    inputObj = { raw: tc.function.arguments };
+                }
+                contentBlocks.push({
+                    type: "tool_use",
+                    id: tc.id,
+                    name: tc.function.name,
+                    input: inputObj,
                 });
             }
         }
 
-        const finishReason = ANTHROPIC_TO_OPENAI_STOP_REASON[upstreamRes.stop_reason || "end_turn"] || "stop";
+        if (contentBlocks.length === 0) {
+            contentBlocks.push({ type: "text", text: "" });
+        }
+
+        const stopReason = OPENAI_TO_ANTHROPIC_STOP_REASON[upstreamRes.choices[0]?.finish_reason || "stop"] || "end_turn";
         const finalId = requestId || upstreamRes.id;
 
         return {
-            id: finalId.startsWith("chatcmpl-") ? finalId : `chatcmpl-${finalId.replace("msg_", "")}`,
-            object: "chat.completion",
-            created: Math.floor(Date.now() / 1000),
+            id: finalId.startsWith("msg_") ? finalId : `msg_${finalId.replace("chatcmpl-", "")}`,
+            type: "message",
+            role: "assistant",
+            content: contentBlocks,
             model: upstreamRes.model,
-            choices: [
-                {
-                    index: 0,
-                    message: {
-                        role: "assistant",
-                        content: textContent || null,
-                        reasoning_content: reasoningContent,
-                        tool_calls: toolCalls,
-                    },
-                    finish_reason: finishReason as "stop" | "length" | "tool_calls" | "content_filter" | null,
-                },
-            ],
+            stop_reason: stopReason as AnthropicResponse["stop_reason"],
             usage: {
-                prompt_tokens: upstreamRes.usage?.input_tokens || 0,
-                completion_tokens: upstreamRes.usage?.output_tokens || 0,
-                total_tokens: (upstreamRes.usage?.input_tokens || 0) + (upstreamRes.usage?.output_tokens || 0),
+                input_tokens: upstreamRes.usage?.prompt_tokens || 0,
+                output_tokens: upstreamRes.usage?.completion_tokens || 0,
             },
         };
     }
 
-    protected doConvertStreamEvent(data: Record<string, unknown>, rawDataStr: string): ProtocolStreamEvent[] {
 
-        const eventType = data.type as string || "";
-
-        if (eventType === "message_start") {
-            const msgStart = data as any;
-            const message = msgStart.message;
-            if (message?.model) this.updateModel(message.model);
-            if (message?.id) {
-                this.updateResponseId(message.id.startsWith("chatcmpl-") ? message.id : `chatcmpl-${message.id.replace("msg_", "")}`);
-            }
-            this.inputTokens = message?.usage?.input_tokens ?? this.inputTokens;
-
-            const chunk: OpenAIChunk = {
-                id: this.responseId,
-                object: "chat.completion.chunk",
-                created: Math.floor(Date.now() / 1000),
-                model: this.requestModel,
-                choices: [
-                    {
-                        index: 0,
-                        delta: { role: "assistant", content: "" },
-                        finish_reason: null,
-                    },
-                ],
-            };
-            return [{ data: JSON.stringify(chunk) }];
+    protected override handleDoneEvent(): ProtocolStreamEvent[] {
+        if (this.pendingStopReason !== null) {
+            const events: AnthropicSSEEvent[] = [
+                {
+                    event: "message_delta",
+                    data: JSON.stringify({
+                        type: "message_delta",
+                        delta: { stop_reason: this.pendingStopReason, stop_sequence: null },
+                        usage: { input_tokens: 0, output_tokens: 0 },
+                    }),
+                },
+                {
+                    event: "message_stop",
+                    data: JSON.stringify({ type: "message_stop" }),
+                },
+            ];
+            this.pendingStopReason = null;
+            return events;
         }
-
-        if (eventType === "content_block_start") {
-            const blockStart = data as any;
-            const block = blockStart.content_block;
-            if (block.type === "tool_use") {
-                this.currentToolCallIndex++;
-                const chunk: OpenAIChunk = {
-                    id: this.responseId,
-                    object: "chat.completion.chunk",
-                    created: Math.floor(Date.now() / 1000),
-                    model: this.requestModel,
-                    choices: [
-                        {
-                            index: 0,
-                            delta: {
-                                tool_calls: [
-                                    {
-                                        index: this.currentToolCallIndex,
-                                        id: block.id,
-                                        type: "function",
-                                        function: { name: block.name, arguments: "" },
-                                    },
-                                ],
-                            },
-                            finish_reason: null,
-                        },
-                    ],
-                };
-                return [{ data: JSON.stringify(chunk) }];
-            }
-            if (block.type === "thinking") {
-                const chunk: OpenAIChunk = {
-                    id: this.responseId,
-                    object: "chat.completion.chunk",
-                    created: Math.floor(Date.now() / 1000),
-                    model: this.requestModel,
-                    choices: [
-                        {
-                            index: 0,
-                            delta: { reasoning_content: "" },
-                            finish_reason: null,
-                        },
-                    ],
-                };
-                return [{ data: JSON.stringify(chunk) }];
-            }
-        }
-
-        if (eventType === "content_block_delta") {
-            const blockDelta = data as any;
-            const delta = blockDelta.delta;
-
-            if (delta.type === "text_delta") {
-                const chunk: OpenAIChunk = {
-                    id: this.responseId,
-                    object: "chat.completion.chunk",
-                    created: Math.floor(Date.now() / 1000),
-                    model: this.requestModel,
-                    choices: [
-                        {
-                            index: 0,
-                            delta: { content: delta.text },
-                            finish_reason: null,
-                        },
-                    ],
-                };
-                return [{ data: JSON.stringify(chunk) }];
-            }
-
-            if (delta.type === "thinking_delta") {
-                const chunk: OpenAIChunk = {
-                    id: this.responseId,
-                    object: "chat.completion.chunk",
-                    created: Math.floor(Date.now() / 1000),
-                    model: this.requestModel,
-                    choices: [
-                        {
-                            index: 0,
-                            delta: { reasoning_content: delta.thinking },
-                            finish_reason: null,
-                        },
-                    ],
-                };
-                return [{ data: JSON.stringify(chunk) }];
-            }
-
-            if (delta.type === "input_json_delta") {
-                const chunk: OpenAIChunk = {
-                    id: this.responseId,
-                    object: "chat.completion.chunk",
-                    created: Math.floor(Date.now() / 1000),
-                    model: this.requestModel,
-                    choices: [
-                        {
-                            index: 0,
-                            delta: {
-                                tool_calls: [
-                                    {
-                                        index: this.currentToolCallIndex,
-                                        function: { arguments: delta.partial_json },
-                                    },
-                                ],
-                            },
-                            finish_reason: null,
-                        },
-                    ],
-                };
-                return [{ data: JSON.stringify(chunk) }];
-            }
-        }
-
-        if (eventType === "message_delta") {
-            const msgDelta = data as any;
-            const finishReason = msgDelta.delta?.stop_reason
-                ? ANTHROPIC_TO_OPENAI_STOP_REASON[msgDelta.delta.stop_reason] || "stop"
-                : null;
-
-            const chunk: OpenAIChunk = {
-                id: this.responseId,
-                object: "chat.completion.chunk",
-                created: Math.floor(Date.now() / 1000),
-                model: this.requestModel,
-                choices: [
-                    {
-                        index: 0,
-                        delta: {},
-                        finish_reason: finishReason,
-                    },
-                ],
-            };
-
-            if (msgDelta.usage) {
-                const promptTokens = msgDelta.usage.input_tokens ?? this.inputTokens;
-                const completionTokens = msgDelta.usage.output_tokens || 0;
-                chunk.usage = {
-                    prompt_tokens: promptTokens,
-                    completion_tokens: completionTokens,
-                    total_tokens: promptTokens + completionTokens,
-                };
-            }
-            return [{ data: JSON.stringify(chunk) }];
-        }
-
-        if (eventType === "message_stop") {
-            return [{ data: "[DONE]" }];
-        }
-
         return [];
+    }
+
+
+    protected doConvertStreamEvent(data: Record<string, unknown>, rawDataStr: string): ProtocolStreamEvent[] {
+        if (data.error || data.type === "error") {
+            return [{ data: rawDataStr, event: "error" }];
+        }
+
+        const events: AnthropicSSEEvent[] = [];
+        const chunk = data as unknown as OpenAIChunk;
+
+        if (this.isFirstChunk) {
+            this.isFirstChunk = false;
+            if (chunk.model) this.updateModel(chunk.model);
+            if (chunk.id) {
+                this.updateResponseId(chunk.id.startsWith("msg_") ? chunk.id : `msg_${chunk.id.replace("chatcmpl-", "")}`);
+            }
+
+            events.push({
+                event: "message_start",
+                data: JSON.stringify({
+                    type: "message_start",
+                    message: {
+                        id: this.responseId,
+                        type: "message",
+                        role: "assistant",
+                        model: this.requestModel,
+                        content: [],
+                        stop_reason: null,
+                        stop_sequence: null,
+                        usage: { input_tokens: 0, output_tokens: 0 },
+                    },
+                }),
+            });
+        }
+
+        if (chunk.choices && chunk.choices.length > 0) {
+            const delta = chunk.choices[0].delta;
+
+            if (delta.reasoning_content) {
+                if (!this.hasYieldedThinking) {
+                    this.hasYieldedThinking = true;
+                    events.push({
+                        event: "content_block_start",
+                        data: JSON.stringify({
+                            type: "content_block_start",
+                            index: this.contentBlockIndex,
+                            content_block: { type: "thinking", thinking: "" },
+                        }),
+                    });
+                }
+                events.push({
+                    event: "content_block_delta",
+                    data: JSON.stringify({
+                        type: "content_block_delta",
+                        index: this.contentBlockIndex,
+                        delta: { type: "thinking_delta", thinking: delta.reasoning_content },
+                    }),
+                });
+            }
+
+            if (delta.content) {
+                if (!this.sentFirstChunk) {
+                    if (this.hasYieldedThinking) {
+                        events.push({
+                            event: "content_block_stop",
+                            data: JSON.stringify({
+                                type: "content_block_stop",
+                                index: this.contentBlockIndex,
+                            }),
+                        });
+                        this.contentBlockIndex++;
+                    }
+
+                    this.sentFirstChunk = true;
+                    events.push({
+                        event: "content_block_start",
+                        data: JSON.stringify({
+                            type: "content_block_start",
+                            index: this.contentBlockIndex,
+                            content_block: { type: "text", text: "" },
+                        }),
+                    });
+                }
+
+                events.push({
+                    event: "content_block_delta",
+                    data: JSON.stringify({
+                        type: "content_block_delta",
+                        index: this.contentBlockIndex,
+                        delta: { type: "text_delta", text: delta.content },
+                    }),
+                });
+            }
+
+            if (delta.tool_calls && delta.tool_calls.length > 0) {
+                for (const tc of delta.tool_calls) {
+                    if (tc.id || tc.function?.name) {
+                        if (this.sentFirstChunk || this.hasYieldedThinking) {
+                            events.push({
+                                event: "content_block_stop",
+                                data: JSON.stringify({
+                                    type: "content_block_stop",
+                                    index: this.contentBlockIndex,
+                                }),
+                            });
+                            this.contentBlockIndex++;
+                            this.sentFirstChunk = false;
+                            this.hasYieldedThinking = false;
+                        }
+
+                        this.currentToolCallId = tc.id || `call_${Date.now()}`;
+                        events.push({
+                            event: "content_block_start",
+                            data: JSON.stringify({
+                                type: "content_block_start",
+                                index: this.contentBlockIndex,
+                                content_block: {
+                                    type: "tool_use",
+                                    id: this.currentToolCallId,
+                                    name: tc.function?.name || "",
+                                    input: {},
+                                },
+                            }),
+                        });
+                    }
+
+                    if (tc.function?.arguments) {
+                        events.push({
+                            event: "content_block_delta",
+                            data: JSON.stringify({
+                                type: "content_block_delta",
+                                index: this.contentBlockIndex,
+                                delta: {
+                                    type: "input_json_delta",
+                                    partial_json: tc.function.arguments,
+                                },
+                            }),
+                        });
+                    }
+                }
+            }
+
+            if (chunk.choices[0].finish_reason) {
+                if (this.sentFirstChunk || this.currentToolCallId || this.hasYieldedThinking) {
+                    events.push({
+                        event: "content_block_stop",
+                        data: JSON.stringify({
+                            type: "content_block_stop",
+                            index: this.contentBlockIndex,
+                        }),
+                    });
+                }
+
+                const stopReason = OPENAI_TO_ANTHROPIC_STOP_REASON[chunk.choices[0].finish_reason] || "end_turn";
+
+                if (chunk.usage) {
+                    const cachedTokens = (chunk.usage as any).prompt_tokens_details?.cached_tokens;
+                    events.push({
+                        event: "message_delta",
+                        data: JSON.stringify({
+                            type: "message_delta",
+                            delta: { stop_reason: stopReason, stop_sequence: null },
+                            usage: {
+                                input_tokens: (chunk.usage.prompt_tokens || 0) - (cachedTokens || 0),
+                                output_tokens: chunk.usage.completion_tokens || 0,
+                                ...(cachedTokens !== undefined ? { cache_read_input_tokens: cachedTokens } : {}),
+                            },
+                        }),
+                    });
+                    events.push({
+                        event: "message_stop",
+                        data: JSON.stringify({ type: "message_stop" }),
+                    });
+                } else {
+                    this.pendingStopReason = stopReason;
+                }
+            }
+        }
+
+        if ((!chunk.choices || chunk.choices.length === 0) && chunk.usage && this.pendingStopReason !== null) {
+            const cachedTokens = (chunk.usage as any).prompt_tokens_details?.cached_tokens;
+            events.push({
+                event: "message_delta",
+                data: JSON.stringify({
+                    type: "message_delta",
+                    delta: { stop_reason: this.pendingStopReason, stop_sequence: null },
+                    usage: {
+                        input_tokens: (chunk.usage.prompt_tokens || 0) - (cachedTokens || 0),
+                        output_tokens: chunk.usage.completion_tokens || 0,
+                        ...(cachedTokens !== undefined ? { cache_read_input_tokens: cachedTokens } : {}),
+                    },
+                }),
+            });
+            events.push({
+                event: "message_stop",
+                data: JSON.stringify({ type: "message_stop" }),
+            });
+            this.pendingStopReason = null;
+        }
+
+        return events;
     }
 }

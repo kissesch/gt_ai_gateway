@@ -7,7 +7,6 @@ import { AnthropicToOpenAIConverter } from "../../../src/util/protocolConverter/
 import { OpenAIToAnthropicConverter } from "../../../src/util/protocolConverter/OpenAIToAnthropicConverter";
 import { ConverterFactory } from "../../../src/util/protocolConverter/ConverterFactory";
 import { BaseConverter } from "../../../src/util/protocolConverter/BaseConverter";
-import { ProtocolPairConverter } from "../../../src/util/protocolConverter/ProtocolPairConverter";
 import { ApiFormat } from "../../../src/constants";
 import customError from "../../../src/util/customError";
 import type { ProtocolStreamEvent } from "../../../src/util/protocolConverter/protocolTypes";
@@ -128,10 +127,10 @@ describe("ConverterFactory", () => {
         expect(ConverterFactory.create("google" as ApiFormat, ApiFormat.OPENAI)).toBeNull();
     });
 
-    it("should create a pair converter for request and response conversion", () => {
-        const converter = ConverterFactory.createPair(ApiFormat.OPENAI, ApiFormat.ANTHROPIC);
+    it("should create a client-to-server converter for request and response conversion", () => {
+        const converter = ConverterFactory.create(ApiFormat.OPENAI, ApiFormat.ANTHROPIC);
 
-        expect(converter).toBeInstanceOf(ProtocolPairConverter);
+        expect(converter).toBeInstanceOf(OpenAIToAnthropicConverter);
 
         const upstreamRequest = converter!.convertRequest({
             model: "gpt-4",

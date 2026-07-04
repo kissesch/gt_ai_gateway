@@ -835,7 +835,7 @@ async function sendRequest(
 
     let converter: BaseConverter | null = null;
     if (needsConversion) {
-        converter = ConverterFactory.createPair(format, upstreamFormat);
+        converter = ConverterFactory.create(format, upstreamFormat);
         if (!converter) {
             throw new customError.AppError(
                 `Unsupported protocol conversion: ${format} → ${upstreamFormat}`,

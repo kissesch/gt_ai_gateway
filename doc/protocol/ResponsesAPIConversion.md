@@ -232,8 +232,7 @@ src/util/protocolConverter/
 ├── OpenAIToAnthropicConverter.ts       # OpenAI ChatCompletions → Anthropic
 ├── ResponsesToAnthropicConverter.ts    # Responses → Anthropic（新增）
 ├── AnthropicToResponsesConverter.ts    # Anthropic → Responses（新增）
-├── ConverterFactory.ts                 # 工厂类（已更新支持 Responses）
-└── ProtocolPairConverter.ts            # 请求/响应转换器对
+└── ConverterFactory.ts                 # 工厂类（已更新支持 Responses）
 ```
 
 ### ConverterFactory 转换矩阵

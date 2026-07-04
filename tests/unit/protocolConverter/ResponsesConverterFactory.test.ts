@@ -47,23 +47,23 @@ describe("ConverterFactory - Responses ↔ Anthropic routing", () => {
         expect(ConverterFactory.create(ApiFormat.RESPONSES, ApiFormat.RESPONSES)).toBeNull();
     });
 
-    it("should create pair converter for RESPONSES ↔ ANTHROPIC", () => {
-        const pair = ConverterFactory.createPair(ApiFormat.RESPONSES, ApiFormat.ANTHROPIC);
-        expect(pair).not.toBeNull();
+    it("should create client-to-server converter for RESPONSES -> ANTHROPIC", () => {
+        const converter = ConverterFactory.create(ApiFormat.RESPONSES, ApiFormat.ANTHROPIC);
+        expect(converter).toBeInstanceOf(ResponsesToAnthropicConverter);
     });
 
-    it("should convert Anthropic client requests and Responses upstream responses through pair converter", () => {
-        const pair = ConverterFactory.createPair(ApiFormat.ANTHROPIC, ApiFormat.RESPONSES);
-        expect(pair).not.toBeNull();
+    it("should convert Anthropic client requests and Responses upstream responses through one converter", () => {
+        const converter = ConverterFactory.create(ApiFormat.ANTHROPIC, ApiFormat.RESPONSES);
+        expect(converter).toBeInstanceOf(AnthropicToResponsesConverter);
 
-        const upstreamReq = pair!.convertRequest({
+        const upstreamReq = converter!.convertRequest({
             model: "gpt-5.5",
             max_tokens: 1024,
             messages: [{ role: "user", content: "你好" }],
         });
         expect(upstreamReq.input[0].content[0].type).toBe("input_text");
 
-        const clientRes = pair!.convertResponse({
+        const clientRes = converter!.convertResponse({
             id: "resp_123",
             object: "response",
             created_at: 1677652288,
@@ -91,11 +91,11 @@ describe("ConverterFactory - Responses ↔ Anthropic routing", () => {
         expect(clientRes.usage).toEqual({ input_tokens: 6, output_tokens: 2, cache_read_input_tokens: 4 });
     });
 
-    it("should convert Responses client requests and Anthropic upstream responses through pair converter", () => {
-        const pair = ConverterFactory.createPair(ApiFormat.RESPONSES, ApiFormat.ANTHROPIC);
-        expect(pair).not.toBeNull();
+    it("should convert Responses client requests and Anthropic upstream responses through one converter", () => {
+        const converter = ConverterFactory.create(ApiFormat.RESPONSES, ApiFormat.ANTHROPIC);
+        expect(converter).toBeInstanceOf(ResponsesToAnthropicConverter);
 
-        const upstreamReq = pair!.convertRequest({
+        const upstreamReq = converter!.convertRequest({
             model: "claude-3-sonnet-20240229",
             input: [
                 {
@@ -107,7 +107,7 @@ describe("ConverterFactory - Responses ↔ Anthropic routing", () => {
         });
         expect(upstreamReq.messages[0].content[0]).toEqual({ type: "text", text: "hello" });
 
-        const clientRes = pair!.convertResponse({
+        const clientRes = converter!.convertResponse({
             id: "msg_123",
             type: "message",
             role: "assistant",

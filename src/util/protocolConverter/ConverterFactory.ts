@@ -4,7 +4,6 @@ import { AnthropicToOpenAIConverter } from "./AnthropicToOpenAIConverter";
 import { OpenAIToAnthropicConverter } from "./OpenAIToAnthropicConverter";
 import { ResponsesToAnthropicConverter } from "./ResponsesToAnthropicConverter";
 import { AnthropicToResponsesConverter } from "./AnthropicToResponsesConverter";
-import { ProtocolPairConverter } from "./ProtocolPairConverter";
 
 export class ConverterFactory {
     /**
@@ -43,34 +42,5 @@ export class ConverterFactory {
         // if (clientFormat === ApiFormat.OPENAI && upstreamFormat === ApiFormat.RESPONSES) { ... }
 
         return null;
-    }
-
-    public static createPair(
-        clientFormat: ApiFormat,
-        upstreamFormat: ApiFormat,
-        requestModel?: string
-    ): BaseConverter | null {
-        if (clientFormat === upstreamFormat) {
-            return null;
-        }
-
-        const requestConverter = this.create(clientFormat, upstreamFormat, requestModel);
-        if (!requestConverter) {
-            return null;
-        }
-
-        if (
-            (clientFormat === ApiFormat.ANTHROPIC && upstreamFormat === ApiFormat.RESPONSES) ||
-            (clientFormat === ApiFormat.RESPONSES && upstreamFormat === ApiFormat.ANTHROPIC)
-        ) {
-            return new ProtocolPairConverter(requestConverter, requestConverter);
-        }
-
-        const responseConverter = this.create(upstreamFormat, clientFormat, requestModel);
-        if (!responseConverter) {
-            return null;
-        }
-
-        return new ProtocolPairConverter(requestConverter, responseConverter);
     }
 }
