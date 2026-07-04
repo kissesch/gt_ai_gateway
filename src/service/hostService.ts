@@ -12,7 +12,7 @@ function generateShortUuid(): string {
 
 
 async function loadHostKey(): Promise<string> {
-    const existing = (await configService.getConfig(ConfigKey.HOST_KEY, "")).getString().trim();
+    const existing = (await configService.getConfig(ConfigKey.HOST_KEY)).getString().trim();
     if (existing) {
         cachedHostKey = existing;
         return existing;

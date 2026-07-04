@@ -8,6 +8,20 @@ export enum ConfigKey {
     STREAM_LOG_ENABLED = "stream_log_enabled",
 }
 
+// 各配置项的默认值集中在此维护，调用方无需再传默认值。
+// 未在表中登记的 key 默认值为空字符串。
+const CONFIG_DEFAULTS: Record<string, string> = {
+    [ConfigKey.CCH_REWRITE_ENABLED]: "true",
+    [ConfigKey.RESPONSES_PROMPT_CACHE_KEY_ENABLED]: "true",
+    [ConfigKey.CLAUDE_CODE_TRACKING_REWRITE_ENABLED]: "true",
+    [ConfigKey.HOST_KEY]: "",
+    [ConfigKey.STREAM_LOG_ENABLED]: "false",
+};
+
+function getDefault(name: string): string {
+    return CONFIG_DEFAULTS[name] ?? "";
+}
+
 export class ConfigItem {
     constructor(private readonly value: string | null | undefined, private readonly defaultValue: string) {}
 
@@ -33,9 +47,10 @@ export class ConfigItem {
 const cache = new Map<string, string | null>();
 let isAllLoaded = false;
 
-async function getConfig(name: ConfigKey | string, defaultValue: string = ""): Promise<ConfigItem> {
+async function getConfig(name: ConfigKey | string): Promise<ConfigItem> {
     const key = name as string;
-    
+    const defaultValue = getDefault(key);
+
     if (cache.has(key)) {
         return new ConfigItem(cache.get(key), defaultValue);
     }
@@ -45,7 +60,7 @@ async function getConfig(name: ConfigKey | string, defaultValue: string = ""): P
         cache.set(key, config.value);
         return new ConfigItem(config.value, defaultValue);
     }
-    
+
     cache.set(key, null);
     return new ConfigItem(undefined, defaultValue);
 }

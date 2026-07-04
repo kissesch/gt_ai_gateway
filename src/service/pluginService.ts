@@ -16,13 +16,13 @@ class PluginService {
         // Apply plugins based on format
         if (currentFormat === ApiFormat.ANTHROPIC) {
             // 1. Claude Code Tracking Marker Removal
-            const trackingRewriteEnabled = (await configService.getConfig(ConfigKey.CLAUDE_CODE_TRACKING_REWRITE_ENABLED, "true")).getBoolean();
+            const trackingRewriteEnabled = (await configService.getConfig(ConfigKey.CLAUDE_CODE_TRACKING_REWRITE_ENABLED)).getBoolean();
             if (trackingRewriteEnabled) {
                 body = removeClaudeCodeTrackingMarker(body);
             }
 
             // 2. CCH Rewrite
-            const cchRewriteEnabled = (await configService.getConfig(ConfigKey.CCH_REWRITE_ENABLED, "true")).getBoolean();
+            const cchRewriteEnabled = (await configService.getConfig(ConfigKey.CCH_REWRITE_ENABLED)).getBoolean();
             if (cchRewriteEnabled) {
                 body = rewriteCchInSystemPrompt(body);
             }
@@ -30,7 +30,7 @@ class PluginService {
 
         if (currentFormat === ApiFormat.RESPONSES) {
             // 3. Responses API Prompt Cache Key Injection
-            const responsesPromptCacheKeyEnabled = (await configService.getConfig(ConfigKey.RESPONSES_PROMPT_CACHE_KEY_ENABLED, "true")).getBoolean();
+            const responsesPromptCacheKeyEnabled = (await configService.getConfig(ConfigKey.RESPONSES_PROMPT_CACHE_KEY_ENABLED)).getBoolean();
             if (responsesPromptCacheKeyEnabled) {
                 body = injectResponsesPromptCacheKey(body, hostKey, clientName);
             }
