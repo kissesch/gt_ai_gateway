@@ -75,8 +75,8 @@ async function bootstrap() {
     posthog.init('phc_ugm7dcRiZDbQhggrmJZFMuzmRaGUbnE2t4KgqM62FEyA', {
         api_host: 'https://us.i.posthog.com',
         person_profiles: 'identified_only',
-        autocapture: true,
-        capture_pageview: true,
+        autocapture: false,
+        capture_pageview: false,
         disable_session_recording: true,
     });
     
