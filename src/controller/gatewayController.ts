@@ -7,6 +7,7 @@ import { SgUser } from "../model/sgUser";
 import { SgVendor } from "../model/sgVendor";
 import { ApiFormat, UserStatus } from "../constants";
 import customError from "../util/customError";
+import recordService from "../service/recordService";
 
 async function chatCompletions(c: Context) {
     c.set("api_format", ApiFormat.OPENAI);
@@ -47,6 +48,7 @@ async function chatCompletions(c: Context) {
     console.log("modelConfig:", modelConfig);
 
     if (modelConfig == null) {
+        await recordService.recordFailedRequest(user.id, modelName, body, ApiFormat.OPENAI, "model_not_found");
         throw new customError.NotFoundError("model not found");
     }
 
@@ -57,6 +59,7 @@ async function chatCompletions(c: Context) {
     console.log("vendor:", vendor);
 
     if (vendor == null) {
+        await recordService.recordFailedRequest(user.id, modelName, body, ApiFormat.OPENAI, "vendor_not_found", modelConfig.id, modelConfig.vendor_id);
         throw new customError.NotFoundError("vendor not found");
     }
 
@@ -104,6 +107,7 @@ async function anthropicMessages(c: Context) {
     console.log("modelConfig:", modelConfig);
 
     if (modelConfig == null) {
+        await recordService.recordFailedRequest(user.id, modelName, body, ApiFormat.ANTHROPIC, "model_not_found");
         throw new customError.NotFoundError("model not found");
     }
 
@@ -114,6 +118,7 @@ async function anthropicMessages(c: Context) {
     console.log("vendor:", vendor);
 
     if (vendor == null) {
+        await recordService.recordFailedRequest(user.id, modelName, body, ApiFormat.ANTHROPIC, "vendor_not_found", modelConfig.id, modelConfig.vendor_id);
         throw new customError.NotFoundError("vendor not found");
     }
 
@@ -145,11 +150,13 @@ async function responsesApi(c: Context) {
     const modelName = bodyDict.model;
     const modelConfig: SgModel | null = await modelService.getModel(modelName, true);
     if (modelConfig == null) {
+        await recordService.recordFailedRequest(user.id, modelName, body, ApiFormat.RESPONSES, "model_not_found");
         throw new customError.NotFoundError("model not found");
     }
 
     const vendor: SgVendor | null = await SgVendor.query().find(modelConfig!.vendor_id!);
     if (vendor == null) {
+        await recordService.recordFailedRequest(user.id, modelName, body, ApiFormat.RESPONSES, "vendor_not_found", modelConfig.id, modelConfig.vendor_id);
         throw new customError.NotFoundError("vendor not found");
     }
 

@@ -83,6 +83,9 @@ describe("AI Chat API (Negative)", () => {
             ),
             adminToken,
         );
+
+        // Create model with non-existent vendor
+        await dbHelper.execute("INSERT INTO model (name, vendor_id, enable) VALUES ('vendor-not-found-model', 999999, 1)");
     });
 
     describe("POST /llm/v1/chat/completions", () => {
@@ -172,6 +175,48 @@ describe("AI Chat API (Negative)", () => {
                     code: "not_found_error"
                 }
             });
+
+            // Verify a failed record was created in the database
+            const records = dbHelper.query<any>("SELECT * FROM record ORDER BY id DESC LIMIT 1");
+            const latestRecord = records[0];
+            expect(latestRecord).toBeDefined();
+            expect(latestRecord!.status).toBe("failed");
+            expect(latestRecord!.failed_code).toBe("model_not_found");
+            expect(latestRecord!.model_id).toBeNull();
+            expect(latestRecord!.vendor_id).toBeNull();
+            expect(latestRecord!.vendor_model_name).toBe("non-existent-model");
+        }, 30000);
+
+        it("should return 404 when vendor does not exist", async () => {
+            const chatRequest = mockHelper.generateOpenAIChatRequest({
+                model: "vendor-not-found-model",
+            });
+
+            const response = await requestHelper.post(
+                "/llm/v1/chat/completions",
+                chatRequest,
+                testUserToken,
+            );
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual({
+                error: {
+                    message: expect.stringContaining("vendor not found"),
+                    type: "not_found_error",
+                    param: null,
+                    code: "not_found_error"
+                }
+            });
+
+            // Verify a failed record was created in the database
+            const records = dbHelper.query<any>("SELECT * FROM record ORDER BY id DESC LIMIT 1");
+            const latestRecord = records[0];
+            expect(latestRecord).toBeDefined();
+            expect(latestRecord!.status).toBe("failed");
+            expect(latestRecord!.failed_code).toBe("vendor_not_found");
+            expect(latestRecord!.model_id).not.toBeNull();
+            expect(latestRecord!.vendor_id).toBe(999999);
+            expect(latestRecord!.vendor_model_name).toBe("vendor-not-found-model");
         }, 30000);
     });
 
@@ -258,6 +303,115 @@ describe("AI Chat API (Negative)", () => {
                     message: expect.stringContaining("model not found")
                 }
             });
+
+            // Verify a failed record was created in the database
+            const records = dbHelper.query<any>("SELECT * FROM record ORDER BY id DESC LIMIT 1");
+            const latestRecord = records[0];
+            expect(latestRecord).toBeDefined();
+            expect(latestRecord!.status).toBe("failed");
+            expect(latestRecord!.failed_code).toBe("model_not_found");
+            expect(latestRecord!.model_id).toBeNull();
+            expect(latestRecord!.vendor_id).toBeNull();
+            expect(latestRecord!.vendor_model_name).toBe("non-existent-model");
+        }, 30000);
+
+        it("should return 404 when vendor does not exist", async () => {
+            const messageRequest = mockHelper.generateAnthropicMessageRequest({
+                model: "vendor-not-found-model",
+            });
+
+            const response = await requestHelper.postWithAnthropicStyleApiKey(
+                "/llm/v1/messages",
+                messageRequest,
+                testUserToken,
+            );
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual({
+                type: "error",
+                error: {
+                    type: "not_found_error",
+                    message: expect.stringContaining("vendor not found")
+                }
+            });
+
+            // Verify a failed record was created in the database
+            const records = dbHelper.query<any>("SELECT * FROM record ORDER BY id DESC LIMIT 1");
+            const latestRecord = records[0];
+            expect(latestRecord).toBeDefined();
+            expect(latestRecord!.status).toBe("failed");
+            expect(latestRecord!.failed_code).toBe("vendor_not_found");
+            expect(latestRecord!.model_id).not.toBeNull();
+            expect(latestRecord!.vendor_id).toBe(999999);
+            expect(latestRecord!.vendor_model_name).toBe("vendor-not-found-model");
+        }, 30000);
+    });
+
+    describe("POST /llm/v1/responses (Responses API)", () => {
+        it("should return 404 when model does not exist", async () => {
+            const responsesRequest = {
+                model: "non-existent-model",
+                messages: [{ role: "user", content: "Hello" }]
+            };
+
+            const response = await requestHelper.post(
+                "/llm/v1/responses",
+                responsesRequest,
+                testUserToken,
+            );
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual({
+                error: {
+                    message: expect.stringContaining("model not found"),
+                    type: "not_found_error",
+                    param: null,
+                    code: "not_found_error"
+                }
+            });
+
+            // Verify a failed record was created in the database
+            const records = dbHelper.query<any>("SELECT * FROM record ORDER BY id DESC LIMIT 1");
+            const latestRecord = records[0];
+            expect(latestRecord).toBeDefined();
+            expect(latestRecord!.status).toBe("failed");
+            expect(latestRecord!.failed_code).toBe("model_not_found");
+            expect(latestRecord!.model_id).toBeNull();
+            expect(latestRecord!.vendor_id).toBeNull();
+            expect(latestRecord!.vendor_model_name).toBe("non-existent-model");
+        }, 30000);
+
+        it("should return 404 when vendor does not exist", async () => {
+            const responsesRequest = {
+                model: "vendor-not-found-model",
+                messages: [{ role: "user", content: "Hello" }]
+            };
+
+            const response = await requestHelper.post(
+                "/llm/v1/responses",
+                responsesRequest,
+                testUserToken,
+            );
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual({
+                error: {
+                    message: expect.stringContaining("vendor not found"),
+                    type: "not_found_error",
+                    param: null,
+                    code: "not_found_error"
+                }
+            });
+
+            // Verify a failed record was created in the database
+            const records = dbHelper.query<any>("SELECT * FROM record ORDER BY id DESC LIMIT 1");
+            const latestRecord = records[0];
+            expect(latestRecord).toBeDefined();
+            expect(latestRecord!.status).toBe("failed");
+            expect(latestRecord!.failed_code).toBe("vendor_not_found");
+            expect(latestRecord!.model_id).not.toBeNull();
+            expect(latestRecord!.vendor_id).toBe(999999);
+            expect(latestRecord!.vendor_model_name).toBe("vendor-not-found-model");
         }, 30000);
     });
 });

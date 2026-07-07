@@ -1,5 +1,5 @@
 import { SgRecord, RECORD_SUMMARY_COLUMNS } from "../model/sgRecord";
-import { SgRecordStatus } from "../constants";
+import { SgRecordStatus, ApiFormat } from "../constants";
 
 function isLogEnabled(): boolean {
     return process.env.RECORD_LOG_ENABLED === "true";
@@ -7,7 +7,7 @@ function isLogEnabled(): boolean {
 
 async function create(
     userId: number,
-    modelId: number,
+    modelId: number | null,
     requestData: string | null,
     clientFormat: string | null = null,
     upstreamFormat: string | null = null,
@@ -54,8 +54,38 @@ async function latest(limit: number = 10, summaryOnly: boolean = false) {
     return q.get();
 }
 
+async function recordFailedRequest(
+    userId: number,
+    modelName: string | null,
+    body: string,
+    clientFormat: ApiFormat,
+    failedCode: string,
+    modelId: number | null = null,
+    vendorId: number | null = null
+) {
+    try {
+        const record = await create(
+            userId,
+            modelId,
+            body,
+            clientFormat,
+            null,
+            vendorId,
+            modelName
+        );
+        await update(record.id, {
+            status: SgRecordStatus.FAILED,
+            failed_code: failedCode,
+            end_at: new Date(),
+        });
+    } catch (e) {
+        console.error("Failed to write failed record:", e);
+    }
+}
+
 export default {
     create,
     update,
     latest,
+    recordFailedRequest,
 };
