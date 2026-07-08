@@ -596,29 +596,8 @@ async function handleResponsesStreamResponse(
         c.req.raw.signal.removeEventListener("abort", abortHandler);
 
         runInBackground(c, async () => {
-            if (
-                failedCode === FailedCode.CLIENT_DISCONNECTED
-                || failedCode === FailedCode.UPSTREAM_DISCONNECTED
-            ) {
-                await recordService.update(record.id, {
-                    status: SgRecordStatus.FAILED,
-                    failed_code: failedCode,
-                    end_at: new Date(),
-                });
-                return;
-            }
-
-            if (failedCode === FailedCode.UPSTREAM_ERROR || accumulator.isErrored()) {
-                const errorData = accumulator.getError() ?? streamErrorData;
-                await recordService.update(record.id, {
-                    status: SgRecordStatus.FAILED,
-                    failed_code: FailedCode.UPSTREAM_ERROR,
-                    response_data: errorData !== null ? JSON.stringify(errorData) : null,
-                    end_at: new Date(),
-                });
-                return;
-            }
-
+            // 响应已完整接收（收到 response.completed）时优先视为成功：
+            // 即使随后客户端或上游连接断开，也可能只是客户端拿到完整结果后提前关闭了连接
             if (accumulator.isCompleted()) {
                 const fullResponse = accumulator.getResponse();
                 const usage = accumulator.getUsage() as Dict | null;
@@ -642,6 +621,29 @@ async function handleResponsesStreamResponse(
                 if (user.type !== "root") {
                     await userService.deductBalance(user.id, cost);
                 }
+                return;
+            }
+
+            if (
+                failedCode === FailedCode.CLIENT_DISCONNECTED
+                || failedCode === FailedCode.UPSTREAM_DISCONNECTED
+            ) {
+                await recordService.update(record.id, {
+                    status: SgRecordStatus.FAILED,
+                    failed_code: failedCode,
+                    end_at: new Date(),
+                });
+                return;
+            }
+
+            if (failedCode === FailedCode.UPSTREAM_ERROR || accumulator.isErrored()) {
+                const errorData = accumulator.getError() ?? streamErrorData;
+                await recordService.update(record.id, {
+                    status: SgRecordStatus.FAILED,
+                    failed_code: FailedCode.UPSTREAM_ERROR,
+                    response_data: errorData !== null ? JSON.stringify(errorData) : null,
+                    end_at: new Date(),
+                });
                 return;
             }
 

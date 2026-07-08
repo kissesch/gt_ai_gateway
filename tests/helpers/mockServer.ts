@@ -239,6 +239,8 @@ function handleRequest(req: IncomingMessage, res: ServerResponse): void {
         handleResponsesStreamIncomplete(req, res);
     } else if (url.includes("/responses/slow")) {
         handleResponsesStreamSlow(req, res);
+    } else if (url.includes("/responses/complete-then-hang")) {
+        handleResponsesStreamCompleteThenHang(req, res);
     } else if (url.includes("/responses/error")) {
         handleResponsesError(req, res);
     } else if (url.includes("/responses")) {
@@ -1386,6 +1388,70 @@ function handleResponsesStreamSlow(req: IncomingMessage, res: ServerResponse): v
         res.write(`data: ${JSON.stringify({ type: "response.created", sequence_number: 0, response: { ...baseResponse } })}\n\n`);
         res.write(`data: ${JSON.stringify({ type: "response.output_text.delta", sequence_number: 1, output_index: 0, content_index: 0, delta: "Hello" })}\n\n`);
         // Hang indefinitely — never send response.completed
+    });
+}
+
+
+/**
+ * Responses API stream that fully completes (sends response.completed) but then
+ * keeps the connection open without closing it — simulates the client receiving
+ * the complete response and disconnecting while upstream is still holding the socket.
+ */
+function handleResponsesStreamCompleteThenHang(req: IncomingMessage, res: ServerResponse): void {
+    let body = "";
+    req.on("data", (chunk) => { body += chunk.toString(); });
+    req.on("end", () => {
+        const data = body ? JSON.parse(body) : {};
+        captureRequest(req, body, data);
+        const msgId = `msg_mock_${Date.now()}`;
+        const respId = `resp_mock_${Date.now()}`;
+        const now = Math.floor(Date.now() / 1000);
+        const model = data.model || "gpt-4o";
+
+        res.writeHead(200, {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+        });
+
+        const baseResponse = {
+            id: respId, object: "response", created_at: now, model,
+            status: "in_progress", output: [], error: null,
+            incomplete_details: null, instructions: null,
+            reasoning: { effort: "none", summary: null },
+            temperature: 1.0, tool_choice: "auto", tools: [],
+            usage: null, completed_at: null,
+        };
+
+        res.write(`data: ${JSON.stringify({ type: "response.created", sequence_number: 0, response: { ...baseResponse } })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: "response.output_text.delta", sequence_number: 1, output_index: 0, content_index: 0, item_id: msgId, delta: "Hello" })}\n\n`);
+        res.write(`data: ${JSON.stringify({
+            type: "response.completed",
+            sequence_number: 2,
+            response: {
+                ...baseResponse,
+                status: "completed",
+                output: [
+                    {
+                        id: msgId,
+                        type: "message",
+                        role: "assistant",
+                        status: "completed",
+                        content: [{ type: "output_text", text: "Hello", annotations: [] }],
+                    },
+                ],
+                usage: {
+                    input_tokens: 10,
+                    input_tokens_details: { cached_tokens: 0 },
+                    output_tokens: 15,
+                    output_tokens_details: { reasoning_tokens: 0 },
+                    total_tokens: 25,
+                },
+                completed_at: now,
+            },
+        })}\n\n`);
+        // Intentionally do not call res.end() — upstream keeps holding the connection
+        // open even though the response has already fully completed.
     });
 }
 

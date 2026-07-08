@@ -32,6 +32,9 @@ let openaiSlowModelName: string;
 let anthropicSlowModelName: string;
 let responsesSlowModelName: string;
 
+// Model for the "client disconnects after response.completed" scenario
+let responsesCompleteThenHangModelName: string;
+
 
 describe("Stream Failure Handling", () => {
     beforeAll(async () => {
@@ -190,6 +193,24 @@ describe("Stream Failure Handling", () => {
         await requestHelper.post(
             "/model/create.json",
             { name: responsesSlowModelName, vendor_id: responsesSlowVendor.body.id, enable: true },
+            adminToken,
+        );
+
+        // --- Responses API "complete then hang" vendor/model ---
+        const responsesCompleteThenHangVendor = await requestHelper.post(
+            "/vendor/create.json",
+            {
+                type: "other",
+                name: "Mock Responses Complete Then Hang",
+                token: "test-token",
+                urls: { responses: `${MOCK_BASE}/responses/complete-then-hang` },
+            },
+            adminToken,
+        );
+        responsesCompleteThenHangModelName = `responses-complete-then-hang-${Date.now()}`;
+        await requestHelper.post(
+            "/model/create.json",
+            { name: responsesCompleteThenHangModelName, vendor_id: responsesCompleteThenHangVendor.body.id, enable: true },
             adminToken,
         );
     });
@@ -398,6 +419,51 @@ describe("Stream Failure Handling", () => {
 
             expect(record.status).toBe("failed");
             expect(record.failed_code).toBe("client_disconnected");
+        }, 15000);
+
+        it("should keep status=success when client disconnects after response.completed was already received (Responses)", async () => {
+            const baseUrl = config.SERVER_CONFIG.baseUrl;
+            const ac = new AbortController();
+
+            const response = await fetch(`${baseUrl}/llm/v1/responses`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${testUserToken}`,
+                },
+                body: JSON.stringify({
+                    model: responsesCompleteThenHangModelName,
+                    input: "hi",
+                    stream: true,
+                }),
+                signal: ac.signal,
+            } as any);
+
+            const reader = (response.body as any).getReader();
+            const decoder = new TextDecoder();
+            let received = "";
+            // Keep reading until the client has seen the full response.completed event,
+            // even though upstream keeps holding the connection open afterwards.
+            while (!received.includes("response.completed")) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                received += decoder.decode(value, { stream: true });
+            }
+
+            // Client disconnects right after getting the complete response.
+            ac.abort();
+            reader.cancel().catch(() => {});
+
+            // Give the gateway time to detect the disconnect and finalize the record
+            await new Promise((resolve) => setTimeout(resolve, 800));
+
+            const recordRes = await requestHelper.get("/record/latest.json?limit=1", adminToken);
+            const record = recordRes.body[0];
+
+            expect(record.status).toBe("success");
+            expect(record.failed_code).toBeNull();
+            expect(record.response_data).toBeTruthy();
+            expect(record.usage).toBeTruthy();
         }, 15000);
     });
 });
