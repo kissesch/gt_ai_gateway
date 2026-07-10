@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
-import responsesAccumulator from "../../src/util/responsesAccumulator";
+import responsesAccumulator from "../../../src/util/accumulator/responsesAccumulator";
 
 function requireFixture(fileName: string): string {
-    const logFile = join(__dirname, "..", "resource", "stream_logs", fileName);
+    const logFile = join(__dirname, "..", "..", "resource", "stream_logs", fileName);
 
     if (!existsSync(logFile)) {
         throw new Error(`Fixture not found: ${logFile}`);

@@ -12,8 +12,8 @@
  * - response.completed     → 用完整 response 对象覆盖（包含 usage）
  */
 
-import type { ProtocolStreamEvent } from "./protocolConverter/protocolTypes";
-import type { ResponsesStreamEvent } from "./protocolConverter/responsesTypes";
+import type { ProtocolStreamEvent } from "../protocolConverter/protocolTypes";
+import type { ResponsesStreamEvent } from "../protocolConverter/responsesTypes";
 
 interface ResponsesContentPart {
     type?: string;

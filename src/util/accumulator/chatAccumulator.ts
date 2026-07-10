@@ -4,7 +4,7 @@
  * 与 responsesAccumulator（处理 OpenAI Responses API）对应，本模块处理“chat/messages”这一族协议。
  */
 
-import type { ProtocolStreamEvent } from "./protocolConverter/protocolTypes";
+import type { ProtocolStreamEvent } from "../protocolConverter/protocolTypes";
 
 interface OpenAIChatChunk {
     id?: string;
