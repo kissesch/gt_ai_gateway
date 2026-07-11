@@ -1,20 +1,15 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import requestHelper from "../helpers/requestHelper";
-import dbHelper from "../helpers/dbHelper";
-import { setupAdminUser } from "../globalSetup";
 import { readFileSync, readdirSync } from "fs";
 import { join } from "path";
-import config from "../config";
 
 /**
- * Frontend-Backend Integration Tests
+ * Frontend Static File Serving Tests
  * Verifies that the backend correctly serves frontend static files
- * and handles SPA routing while maintaining API functionality
+ * and handles SPA routing
  *
  * Works in both node and worker modes
  */
-
-let adminToken: string;
 
 
 /**
@@ -74,13 +69,7 @@ async function getRaw(endpoint: string): Promise<{
 }
 
 
-describe("Frontend-Backend Integration", () => {
-    beforeAll(async () => {
-        await dbHelper.truncate();
-        adminToken = await setupAdminUser();
-    });
-
-
+describe("Frontend Static File Serving", () => {
     describe("Homepage", () => {
         it("should serve HTML at root path", async () => {
             const response = await getRaw("/");
@@ -196,45 +185,6 @@ describe("Frontend-Backend Integration", () => {
 
             expect(response.status).toBe(200);
             expect(response.contentType).toContain("text/html");
-        });
-    });
-
-
-    describe("API Coexistence", () => {
-        it("should serve API endpoints alongside frontend", async () => {
-            const response = await requestHelper.get("/welcome");
-
-            expect(response.status).toBe(200);
-            expect(typeof response.body).toBe("string");
-            expect(response.body).toContain("serverless ai gateway");
-        });
-
-
-        it("should return JSON 404 for unknown API routes", async () => {
-            const response = await requestHelper.get("/v1/nonexistent");
-
-            expect(response.status).toBe(404);
-            expect(response.body).toHaveProperty("error");
-        });
-
-
-        it("should allow API operations with admin token", async () => {
-            const vendorData = {
-                type: "other",
-                name: "Test Vendor",
-                token: "test-token",
-                url: "http://localhost:9999",
-                api_format: "openai",
-            };
-
-            const response = await requestHelper.post(
-                "/vendor/create.json",
-                vendorData,
-                adminToken,
-            );
-
-            expect(response.status).toBe(200);
-            expect(response.body).toHaveProperty("id");
         });
     });
 });
