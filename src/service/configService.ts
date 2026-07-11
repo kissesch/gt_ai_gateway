@@ -12,6 +12,8 @@ const CONFIG_DEFAULTS: Record<string, string> = {
     [ConfigKey.AUTO_UPDATE_ENABLED]: "true",
     [ConfigKey.TELEMETRY_DISABLED]: "false",
     [ConfigKey.RECORD_PAYLOAD_ENABLED]: "true",
+    [ConfigKey.MODULE_BILLING_ENABLED]: "true",
+    [ConfigKey.MODULE_API_PLAYGROUND_ENABLED]: "true",
 };
 
 function getDefault(name: string): string {

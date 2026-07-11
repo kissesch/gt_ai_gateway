@@ -1,12 +1,13 @@
 import { Context } from "hono";
 import ormService from "../service/ormService";
+import configService from "../service/configService";
 import { SgUser } from "../model/sgUser";
 import { SgVendor } from "../model/sgVendor";
 import { SgModel } from "../model/sgModel";
 import { SgRecord } from "../model/sgRecord";
 import packageJson from "../../package.json";
 import hostService from "../service/hostService";
-import { RunMode } from "../constants";
+import { RunMode, ConfigKey } from "../constants";
 
 // 当前实例的启动时间（延迟初始化，避免 Workers 模块加载时日期异常）
 let INSTANCE_START_TIME: Date | null = null;
@@ -73,6 +74,9 @@ async function status(c: Context) {
 
         const startTime = getInstanceStartTime();
 
+        const moduleBilling = (await configService.getConfig(ConfigKey.MODULE_BILLING_ENABLED)).getBoolean();
+        const moduleApiPlayground = (await configService.getConfig(ConfigKey.MODULE_API_PLAYGROUND_ENABLED)).getBoolean();
+
         return c.json({
             status: "ok",
             mode: ormService.mode,
@@ -89,6 +93,10 @@ async function status(c: Context) {
                 apiAddress: getApiAddress(c),
                 startTime: startTime.toISOString(),
                 uptime: formatUptime(startTime),
+            },
+            modules: {
+                billing: moduleBilling,
+                api_playground: moduleApiPlayground,
             },
             timestamp: new Date().toISOString(),
         });

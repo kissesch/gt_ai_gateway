@@ -67,7 +67,8 @@
 3. **强制推送警告**：除非是为了修复错误的提交（如误删、误传敏感信息且尚未被他人拉取），否则避免使用 `git push --force`。
 4. 在提交之前，需要执行后端的 node 模式自动化测试用例（worker 模式由于较慢，留待 CI 环境自动运行）、TypeScript 静态类型检查（`npm run backend:test:type`），以及一次前端构建。避免提交失败的代码
 5. **禁止自动提交**：必须在明确得到用户的要求或允许后才能执行 `git commit`。即使代码已经完成且测试通过，也应当先告知用户状态，等待用户指示后再提交。
-6. **禁止 AI 署名**：提交信息中不得包含任何 AI 工具相关字样（如 `claude`、`Co-Authored-By: Claude` 等）。`script/githook/pre-commit` 会拦截含此类字样的提交信息。
+6. **禁止自动推送**：`git commit` 后必须等待用户明确指示才能执行 `git push`，不得自动推送。
+7. **禁止 AI 署名**：提交信息中不得包含任何 AI 工具相关字样（如 `claude`、`Co-Authored-By: Claude` 等）。`script/githook/pre-commit` 会拦截含此类字样的提交信息。
 
 ## 测试文档
 ...

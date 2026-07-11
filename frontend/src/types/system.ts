@@ -30,6 +30,10 @@ export interface StatusResponse {
     user_type?: string;
     system?: SystemStatusInfo;
     statistics?: SystemStatistics;
+    modules?: {
+        billing?: boolean;
+        api_playground?: boolean;
+    };
     timestamp?: string;
 }
 

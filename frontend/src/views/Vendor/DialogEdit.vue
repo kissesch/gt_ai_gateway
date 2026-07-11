@@ -88,34 +88,32 @@
                 </template>
             </a-form-item>
             <!-- 高级设置 -->
-            <a-collapse v-model:activeKey="advancedActiveKey" :bordered="false" class="advanced-collapse">
-                <a-collapse-panel key="advanced" header="高级设置">
-                    <div class="advanced-row">
-                        <label class="advanced-label">认证方式</label>
-                        <a-select v-model:value="formState.auth_mode" style="flex: 1">
-                            <a-select-option value="api_key">API Key (x-api-key)</a-select-option>
-                            <a-select-option value="bearer_token">Bearer Token (Authorization)</a-select-option>
-                        </a-select>
-                    </div>
-                    <div class="advanced-row">
-                        <label class="advanced-label">跳过 TLS 验证</label>
-                        <a-switch v-model:checked="formState.skip_tls_verify" />
-                        <span style="margin-left: 8px; color: #999; font-size: 12px;">当使用自签名证书等场景时使用</span>
-                    </div>
-                    <div class="advanced-row">
-                        <label class="advanced-label">代理配置</label>
-                        <a-select v-model:value="formState.proxy_type" style="flex: 1" allow-clear>
-                            <a-select-option :value="null">不使用</a-select-option>
-                            <a-select-option value="http">HTTP</a-select-option>
-                            <a-select-option value="socks5">SOCKS5</a-select-option>
-                        </a-select>
-                    </div>
-                    <div class="advanced-row" v-if="formState.proxy_type">
-                        <label class="advanced-label">代理地址</label>
-                        <a-input v-model:value="formState.proxy_url" placeholder="http://host:port 或 socks5://user:pass@host:port" />
-                    </div>
-                </a-collapse-panel>
-            </a-collapse>
+            <SettingsCollapse v-model:activeKey="advancedActiveKey" panel-key="advanced" header="高级设置">
+                <div class="settings-row">
+                    <label class="settings-label">认证方式</label>
+                    <a-select v-model:value="formState.auth_mode" style="flex: 1">
+                        <a-select-option value="api_key">API Key (x-api-key)</a-select-option>
+                        <a-select-option value="bearer_token">Bearer Token (Authorization)</a-select-option>
+                    </a-select>
+                </div>
+                <div class="settings-row">
+                    <label class="settings-label">跳过 TLS 验证</label>
+                    <a-switch v-model:checked="formState.skip_tls_verify" />
+                    <span style="margin-left: 8px; color: #999; font-size: 12px;">当使用自签名证书等场景时使用</span>
+                </div>
+                <div class="settings-row">
+                    <label class="settings-label">代理配置</label>
+                    <a-select v-model:value="formState.proxy_type" style="flex: 1" allow-clear>
+                        <a-select-option :value="null">不使用</a-select-option>
+                        <a-select-option value="http">HTTP</a-select-option>
+                        <a-select-option value="socks5">SOCKS5</a-select-option>
+                    </a-select>
+                </div>
+                <div class="settings-row" v-if="formState.proxy_type">
+                    <label class="settings-label">代理地址</label>
+                    <a-input v-model:value="formState.proxy_url" placeholder="http://host:port 或 socks5://user:pass@host:port" />
+                </div>
+            </SettingsCollapse>
         </a-form>
     </a-modal>
 </template>
@@ -128,6 +126,7 @@ import { updateVendor } from '@/api/vendor';
 import type { UpdateVendorRequest, Vendor, VendorType, VendorUrls, VendorAuthMode, VendorProxyType } from '@/types/vendor';
 import { notifyRequestError, notifySuccess } from '@/utils/requestFeedback';
 import { useVendorPresets } from '@/composables/useVendorPresets';
+import SettingsCollapse from '@/components/common/SettingsCollapse.vue';
 
 const emit = defineEmits<{
     success: [vendor: Vendor];
@@ -331,43 +330,5 @@ defineExpose({ open });
 .auth-hint {
     color: #8c8c8c;
     font-size: 12px;
-}
-
-.advanced-collapse {
-    background: transparent;
-    border: none;
-    margin-top: 8px;
-}
-
-:deep(.advanced-collapse .ant-collapse-item) {
-    border: 1px solid var(--border-color, #d9d9d9);
-    border-radius: 6px;
-}
-
-:deep(.advanced-collapse .ant-collapse-header) {
-    padding: 8px 16px;
-    font-size: 13px;
-}
-
-:deep(.advanced-collapse .ant-collapse-content-box) {
-    padding: 0 16px 12px;
-}
-
-.advanced-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-}
-
-.advanced-row:last-child {
-    margin-bottom: 0;
-}
-
-.advanced-label {
-    flex-shrink: 0;
-    width: 100px;
-    font-size: 14px;
-    color: rgba(0, 0, 0, 0.88);
 }
 </style>

@@ -73,4 +73,6 @@ export enum ConfigKey {
     AUTO_UPDATE_ENABLED = "auto_update_enabled",
     TELEMETRY_DISABLED = "telemetry_disabled",
     RECORD_PAYLOAD_ENABLED = "record_payload_enabled",
+    MODULE_BILLING_ENABLED = "module_billing_enabled",
+    MODULE_API_PLAYGROUND_ENABLED = "module_api_playground_enabled",
 }
