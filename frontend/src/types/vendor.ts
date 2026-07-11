@@ -18,7 +18,7 @@ export interface VendorUrls {
 export interface VendorConfig {
     auth_mode?: VendorAuthMode;
     skip_tls_verify?: boolean;
-    proxy?: VendorProxyConfig;
+    proxy?: VendorProxyConfig | null;
     [key: string]: any;
 }
 
