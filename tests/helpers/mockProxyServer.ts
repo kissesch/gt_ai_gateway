@@ -5,14 +5,15 @@
  * 支持 HTTP CONNECT（隧道模式）和普通 HTTP 转发。
  * 记录转发的请求，方便测试断言。
  */
-import { createServer, IncomingMessage, ServerResponse } from "http";
-import { connect as netConnect } from "net";
+import http from "http";
+import https from "https";
+import { connect as netConnect, Socket } from "net";
 import { URL } from "url";
 
 
 const DEFAULT_PROXY_PORT = 9997;
 
-let server: ReturnType<typeof createServer> | null = null;
+let server: ReturnType<typeof http.createServer> | null = null;
 let isRunning = false;
 
 // 记录经过代理的请求
@@ -27,14 +28,14 @@ let forwardedRequests: Array<{
 /**
  * 启动 mock 代理服务器
  */
-async function startMockProxy(port: number = DEFAULT_PROXY_PORT): Promise<any> {
+async function startMockProxy(port: number = DEFAULT_PROXY_PORT): Promise<ReturnType<typeof http.createServer> | null> {
     if (isRunning) {
         console.log(`Mock proxy already running on port ${port}`);
         return null;
     }
 
     return new Promise((resolve, reject) => {
-        server = createServer((req: IncomingMessage, res: ServerResponse) => {
+        server = http.createServer((req: http.IncomingMessage, res: http.ServerResponse) => {
             // 测试端点：查询/清空转发记录
             if (req.url === "/_test/requests") {
                 if (req.method === "GET") {
@@ -53,13 +54,12 @@ async function startMockProxy(port: number = DEFAULT_PROXY_PORT): Promise<any> {
         });
 
         // CONNECT 请求需要通过事件处理（createServer 回调不处理 CONNECT）
-        server.on("connect", (req: IncomingMessage, clientSocket: any, head: Buffer) => {
+        server.on("connect", (req: http.IncomingMessage, clientSocket: Socket, head: Buffer) => {
             handleConnect(req, clientSocket, head);
         });
 
-        server.on("error", (err) => {
-            const nodeError = err as NodeJS.ErrnoException;
-            if (nodeError.code === "EADDRINUSE") {
+        server.on("error", (err: NodeJS.ErrnoException) => {
+            if (err.code === "EADDRINUSE") {
                 reject(new Error(`Mock proxy port ${port} already in use`));
             } else {
                 reject(err);
@@ -77,7 +77,7 @@ async function startMockProxy(port: number = DEFAULT_PROXY_PORT): Promise<any> {
 /**
  * 停止 mock 代理服务器
  */
-async function stopMockProxy(serverInstance: any): Promise<void> {
+async function stopMockProxy(serverInstance: ReturnType<typeof http.createServer> | null): Promise<void> {
     if (serverInstance) {
         return new Promise((resolve) => {
             if (typeof serverInstance.closeAllConnections === "function") {
@@ -93,24 +93,10 @@ async function stopMockProxy(serverInstance: any): Promise<void> {
 }
 
 /**
- * 处理代理请求
- * - CONNECT 方法：建立 TLS 隧道（HTTPS 代理场景）
- * - 其他方法：直接转发 HTTP 请求
- */
-function handleProxyRequest(req: IncomingMessage, res: ServerResponse): void {
-    console.log(`[Mock Proxy] ${req.method} ${req.url}`);
-    if (req.method === "CONNECT") {
-        handleConnect(req, res);
-    } else {
-        handleForward(req, res);
-    }
-}
-
-/**
  * 处理 CONNECT 请求（TCP 隧道）
  * CONNECT 只是建立 TCP 隧道，TLS 握手由客户端在隧道上层完成。
  */
-function handleConnect(req: IncomingMessage, clientSocket: any, head: Buffer): void {
+function handleConnect(req: http.IncomingMessage, clientSocket: Socket, head: Buffer): void {
     const [host, portStr] = (req.url || "").split(":");
     const port = parseInt(portStr, 10) || 443;
 
@@ -141,12 +127,12 @@ function handleConnect(req: IncomingMessage, clientSocket: any, head: Buffer): v
         clientSocket.pipe(targetSocket);
     });
 
-    targetSocket.on("error", (err) => {
+    targetSocket.on("error", (err: Error) => {
         console.error(`[Mock Proxy] CONNECT target error: ${err.message}`);
         clientSocket.destroy();
     });
 
-    clientSocket.on("error", (err) => {
+    clientSocket.on("error", (err: Error) => {
         console.error(`[Mock Proxy] CONNECT client error: ${err.message}`);
         targetSocket.destroy();
     });
@@ -155,7 +141,7 @@ function handleConnect(req: IncomingMessage, clientSocket: any, head: Buffer): v
 /**
  * 处理普通 HTTP 转发
  */
-function handleForward(req: IncomingMessage, res: ServerResponse): void {
+function handleForward(req: http.IncomingMessage, res: http.ServerResponse): void {
     const targetUrl = req.url || "";
 
     let parsed: URL;
@@ -180,12 +166,12 @@ function handleForward(req: IncomingMessage, res: ServerResponse): void {
 
     // 收集请求体
     const chunks: Buffer[] = [];
-    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("data", (chunk: Buffer) => chunks.push(chunk));
     req.on("end", () => {
         const body = Buffer.concat(chunks);
 
         const isHttps = parsed.protocol === "https:";
-        const requestFn = isHttps ? httpsRequest : httpRequest;
+        const requestFn = isHttps ? https.request : http.request;
 
         const proxyReq = requestFn(
             {
@@ -195,13 +181,13 @@ function handleForward(req: IncomingMessage, res: ServerResponse): void {
                 method: req.method,
                 headers: { ...req.headers, host: parsed.host },
             },
-            (proxyRes) => {
+            (proxyRes: http.IncomingMessage) => {
                 res.writeHead(proxyRes.statusCode || 502, proxyRes.headers);
                 proxyRes.pipe(res);
             },
         );
 
-        proxyReq.on("error", (err) => {
+        proxyReq.on("error", (err: Error) => {
             console.error(`[Mock Proxy] Forward error:`, err.message);
             if (!res.headersSent) {
                 res.writeHead(502, { "Content-Type": "text/plain" });
