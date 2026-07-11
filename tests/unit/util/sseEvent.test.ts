@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import sseEvent from "../../src/util/sseEvent";
+import sseEvent from "../../../src/util/sseEvent";
 
 describe("sseEvent", () => {
     it("should split complete events and preserve remaining buffer", () => {

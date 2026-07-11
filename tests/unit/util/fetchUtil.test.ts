@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import fetchUtil from "../../src/util/fetchUtil";
+import fetchUtil from "../../../src/util/fetchUtil";
 
 const undiciImport = vi.hoisted(() => ({
     count: 0,

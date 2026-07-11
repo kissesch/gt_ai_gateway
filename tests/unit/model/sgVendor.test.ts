@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { SgVendor, SgVendorConfig } from "../../src/model/sgVendor";
-import { ApiFormat, VendorType, VendorAuthMode } from "../../src/constants";
+import { SgVendor, SgVendorConfig } from "../../../src/model/sgVendor";
+import { ApiFormat, VendorType, VendorAuthMode } from "../../../src/constants";
 
 /**
  * SgVendor URL resolution and merge tests

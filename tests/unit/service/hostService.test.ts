@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ConfigKey } from "../../src/constants";
-import { ConfigItem } from "../../src/service/configService";
+import { ConfigKey } from "../../../src/constants";
+import { ConfigItem } from "../../../src/service/configService";
 
 const configMocks = vi.hoisted(() => ({
     getConfig: vi.fn(),
     setValue: vi.fn(),
 }));
 
-vi.mock("../../src/service/configService", async (importOriginal) => {
+vi.mock("../../../src/service/configService", async (importOriginal) => {
     const actual = await importOriginal<typeof import("../../src/service/configService")>();
     return {
         ...actual,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import tomlUtil from "../../src/util/tomlUtil";
+import tomlUtil from "../../../src/util/tomlUtil";
 
 
 describe("tomlUtil", () => {

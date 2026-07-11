@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { runInBackground } from "../../src/util/runInBackground";
+import { runInBackground } from "../../../src/util/runInBackground";
 import { Context } from "hono";
 
 describe("runInBackground", () => {
