@@ -164,6 +164,41 @@ describe("AI Chat API", () => {
             expect(latestRecord).toHaveProperty("updated_at");
         }, 30000);
 
+        it("should accept x-api-key authentication", async () => {
+            const chatRequest = mockHelper.generateOpenAIChatRequest({
+                model: openaiModelName,
+                stream: false,
+            });
+
+            const response = await requestHelper.postWithAnthropicStyleApiKey(
+                "/llm/v1/chat/completions",
+                chatRequest,
+                testUserToken,
+            );
+
+            expect(response.status).toBe(200);
+            expect(response.body.object).toBe("chat.completion");
+        }, 30000);
+
+        it("should prefer Authorization when both authentication headers are present", async () => {
+            const chatRequest = mockHelper.generateOpenAIChatRequest({
+                model: openaiModelName,
+                stream: false,
+            });
+
+            const response = await requestHelper.request("/llm/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${testUserToken}`,
+                    "x-api-key": "invalid-token",
+                },
+                body: JSON.stringify(chatRequest),
+            });
+
+            expect(response.status).toBe(200);
+            expect(response.body.object).toBe("chat.completion");
+        }, 30000);
+
         it("should handle streaming OpenAI chat request", async () => {
             const chatRequest = mockHelper.generateOpenAIChatRequest({
                 model: openaiModelName,

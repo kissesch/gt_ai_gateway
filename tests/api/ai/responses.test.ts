@@ -138,6 +138,23 @@ describe("AI Responses API", () => {
             expect(upstreamRequests[0].json?.prompt_cache_key).toMatch(/^[0-9a-f]{8}:.+/);
         }, 30000);
 
+        it("should accept x-api-key authentication", async () => {
+            const req = mockHelper.generateResponsesRequest({
+                model: responsesModelName,
+                input: createUniqueInput("responses-api-key"),
+                stream: false,
+            });
+
+            const response = await requestHelper.postWithAnthropicStyleApiKey(
+                "/llm/v1/responses",
+                req,
+                testUserToken,
+            );
+
+            expect(response.status).toBe(200);
+            expect(response.body.object).toBe("response");
+        }, 30000);
+
         it("should handle streaming responses request", async () => {
             await setResponsesPromptCacheKeyEnabled(true);
 

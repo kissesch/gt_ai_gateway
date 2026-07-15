@@ -111,6 +111,44 @@ describe("AI Chat API (Negative)", () => {
             });
         }, 30000);
 
+        it.each([
+            "Basic invalid-token",
+            "Bearer",
+        ])("should return 401 when Authorization header is malformed: %s", async (authorization) => {
+            const chatRequest = mockHelper.generateOpenAIChatRequest({
+                model: openaiModelName,
+            });
+
+            const response = await requestHelper.request("/llm/v1/chat/completions", {
+                method: "POST",
+                headers: { "Authorization": authorization },
+                body: JSON.stringify(chatRequest),
+            });
+
+            expect(response.status).toBe(401);
+            expect(response.body.error).toEqual({
+                message: "Invalid Authorization header",
+                type: "authentication_error",
+                param: null,
+                code: "authentication_error",
+            });
+        }, 30000);
+
+        it("should treat a blank x-api-key as missing", async () => {
+            const chatRequest = mockHelper.generateOpenAIChatRequest({
+                model: openaiModelName,
+            });
+
+            const response = await requestHelper.request("/llm/v1/chat/completions", {
+                method: "POST",
+                headers: { "x-api-key": "   " },
+                body: JSON.stringify(chatRequest),
+            });
+
+            expect(response.status).toBe(401);
+            expect(response.body.error.type).toBe("authentication_error");
+        }, 30000);
+
         it("should return 401 when token is invalid", async () => {
             const chatRequest = mockHelper.generateOpenAIChatRequest({
                 model: openaiModelName,
@@ -152,6 +190,63 @@ describe("AI Chat API (Negative)", () => {
                     param: null,
                     code: "authentication_error"
                 }
+            });
+        }, 30000);
+
+        it("should return 400 when the JSON body is malformed", async () => {
+            const response = await requestHelper.request("/llm/v1/chat/completions", {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${testUserToken}` },
+                body: "{",
+            });
+
+            expect(response.status).toBe(400);
+            expect(response.body.error).toEqual({
+                message: "Invalid JSON body",
+                type: "invalid_request_error",
+                param: null,
+                code: "invalid_request_error",
+            });
+        }, 30000);
+
+        it.each([
+            ["null", "null"],
+            ["an array", "[]"],
+            ["a string", "\"text\""],
+            ["a number", "42"],
+        ])("should return 400 when the JSON body is %s", async (_description, body) => {
+            const response = await requestHelper.request("/llm/v1/chat/completions", {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${testUserToken}` },
+                body,
+            });
+
+            expect(response.status).toBe(400);
+            expect(response.body.error).toEqual({
+                message: "Request body must be a JSON object",
+                type: "invalid_request_error",
+                param: null,
+                code: "invalid_request_error",
+            });
+        }, 30000);
+
+        it.each([
+            ["missing", {}],
+            ["not a string", { model: 123 }],
+            ["blank", { model: "   " }],
+        ])("should return 400 when model is %s", async (_description, body) => {
+            const response = await requestHelper.post(
+                "/llm/v1/chat/completions",
+                body,
+                testUserToken,
+            );
+
+            expect(response.status).toBe(400);
+            expect(response.body.error).toEqual({
+                message: "model parameter is missing or invalid",
+                type: "invalid_request_error",
+                param: null,
+                code: "invalid_request_error",
             });
         }, 30000);
 
@@ -281,6 +376,23 @@ describe("AI Chat API (Negative)", () => {
                     type: "authentication_error",
                     message: expect.stringContaining("User disabled")
                 }
+            });
+        }, 30000);
+
+        it("should use Anthropic error format for an invalid request body", async () => {
+            const response = await requestHelper.request("/llm/v1/messages", {
+                method: "POST",
+                headers: { "x-api-key": testUserToken },
+                body: "null",
+            });
+
+            expect(response.status).toBe(400);
+            expect(response.body).toEqual({
+                type: "error",
+                error: {
+                    type: "invalid_request_error",
+                    message: "Request body must be a JSON object",
+                },
             });
         }, 30000);
 

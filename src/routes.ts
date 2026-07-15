@@ -168,9 +168,9 @@ app.get("/stats/recent.json", authMiddleware.requireAdmin, statsController.recen
 
 // AI endpoints (no auth middleware, using custom llmApiAuth)
 app.get("/llm/v1/models", llmApiMiddleware.requireLlmModelsAuth, modelController.listLlmModels);
-app.post("/llm/v1/chat/completions", llmApiMiddleware.requireLlmAuth(ApiFormat.OPENAI), gatewayController.chatCompletions);
-app.post("/llm/v1/messages", llmApiMiddleware.requireLlmAuth(ApiFormat.ANTHROPIC), gatewayController.anthropicMessages);
-app.post("/llm/v1/responses", llmApiMiddleware.requireLlmAuth(ApiFormat.RESPONSES), gatewayController.responsesApi);
+app.post("/llm/v1/chat/completions", llmApiMiddleware.requireLlmRequestContext(ApiFormat.OPENAI), gatewayController.chatCompletions);
+app.post("/llm/v1/messages", llmApiMiddleware.requireLlmRequestContext(ApiFormat.ANTHROPIC), gatewayController.anthropicMessages);
+app.post("/llm/v1/responses", llmApiMiddleware.requireLlmRequestContext(ApiFormat.RESPONSES), gatewayController.responsesApi);
 
 // Test endpoints
 app.delete("/test/cache/clear", async (c) => {

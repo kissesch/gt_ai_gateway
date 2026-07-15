@@ -8,29 +8,21 @@
 
 所有对 LLM API 的请求都必须包含身份验证信息。网关通过用户 Token 来识别用户身份。
 
-### 1. OpenAI 兼容协议 (Bearer Token)
-在 HTTP Header 中添加 `Authorization` 字段：
+所有 LLM 端点均支持以下两种认证方式。
+
+### 1. Bearer Token
+
 ```http
 Authorization: Bearer YOUR_USER_TOKEN
 ```
 
-模型列表端点同时支持 Bearer Token 和 `x-api-key`：
+### 2. x-api-key
 
 ```http
-GET /llm/v1/models
-Authorization: Bearer YOUR_USER_TOKEN
+x-api-key: YOUR_USER_TOKEN
 ```
 
-### 2. Anthropic 兼容协议 (x-api-key 或 Bearer Token)
-支持两种方式：
-- 使用 `x-api-key` (推荐):
-  ```http
-  x-api-key: YOUR_USER_TOKEN
-  ```
-- 使用 `Authorization`:
-  ```http
-  Authorization: Bearer YOUR_USER_TOKEN
-  ```
+如果请求同时包含两种认证 Header，网关优先使用 `Authorization`。
 
 ---
 
